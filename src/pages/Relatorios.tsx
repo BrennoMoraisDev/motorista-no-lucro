@@ -453,8 +453,10 @@ export default function Relatorios() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm">Detalhamento ({periodLabel[period]})</CardTitle>
               </CardHeader>
-              <CardContent className="overflow-x-auto">
-                <Table>
+              <CardContent className="relative">
+                <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30">
+                  <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-card to-transparent z-10 sm:hidden" />
+                <Table className="min-w-[600px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Data</TableHead>
@@ -485,18 +487,18 @@ export default function Relatorios() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-7 w-7"
+                                className="h-8 w-8 min-h-[32px]"
                                 onClick={() => navigate(`/finalizar-dia?id=${r.id}`)}
                               >
-                                <Pencil className="h-3.5 w-3.5" />
+                                <Pencil className="h-4 w-4" />
                               </Button>
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-7 w-7 text-destructive hover:text-destructive"
+                                className="h-8 w-8 min-h-[32px] text-destructive hover:text-destructive"
                                 onClick={() => setDeleteId(r.id)}
                               >
-                                <Trash2 className="h-3.5 w-3.5" />
+                                <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
                           </TableCell>
@@ -505,6 +507,7 @@ export default function Relatorios() {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               </CardContent>
             </Card>
           </>

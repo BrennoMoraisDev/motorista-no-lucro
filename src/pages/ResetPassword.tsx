@@ -47,9 +47,11 @@ export default function ResetPassword() {
     try {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
+      // Sign out after password reset so user must log in with new password
+      await supabase.auth.signOut();
       setSuccess(true);
-      toast({ title: "Senha alterada!", description: "Sua senha foi redefinida com sucesso." });
-      setTimeout(() => navigate("/dashboard"), 2000);
+      toast({ title: "Senha alterada!", description: "Faça login com sua nova senha." });
+      setTimeout(() => navigate("/login"), 2500);
     } catch (error: any) {
       toast({ title: "Erro", description: error.message || "Tente novamente.", variant: "destructive" });
     } finally {
@@ -71,7 +73,7 @@ export default function ResetPassword() {
               <div className="space-y-4 text-center">
                 <CheckCircle className="mx-auto h-12 w-12 text-primary" />
                 <h1 className="text-2xl font-bold text-card-foreground font-display">Senha redefinida!</h1>
-                <p className="text-sm text-muted-foreground">Redirecionando para o dashboard...</p>
+                <p className="text-sm text-muted-foreground">Redirecionando para o login...</p>
               </div>
             ) : !validSession ? (
               <div className="space-y-4 text-center">
