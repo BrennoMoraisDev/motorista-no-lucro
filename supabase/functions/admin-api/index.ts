@@ -69,7 +69,10 @@ Deno.serve(async (req) => {
       let query = db.from("profiles").select("user_id, name, email, plano, status_assinatura, data_expiracao, photo_url, created_at", { count: "exact" });
 
       if (search) {
-        query = query.or(`email.ilike.%${search}%,name.ilike.%${search}%`);
+        const sanitized = search.slice(0, 100).replace(/[%_,\\()]/g, '');
+        if (sanitized) {
+          query = query.or(`email.ilike.%${sanitized}%,name.ilike.%${sanitized}%`);
+        }
       }
 
       const { data, count, error } = await query
