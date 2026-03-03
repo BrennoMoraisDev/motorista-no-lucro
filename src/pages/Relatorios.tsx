@@ -454,8 +454,13 @@ export default function Relatorios() {
                 <CardTitle className="text-sm">Detalhamento ({periodLabel[period]})</CardTitle>
               </CardHeader>
               <CardContent className="relative">
+                {/* Swipe hint for mobile */}
+                <p className="text-xs text-muted-foreground text-center mb-2 flex items-center justify-center gap-1 sm:hidden animate-pulse">
+                  <span>←</span> Deslize para ver mais <span>→</span>
+                </p>
                 <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30">
                   <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-card to-transparent z-10 sm:hidden" />
+                  <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-card to-transparent z-10 sm:hidden" />
                 <Table className="min-w-[600px]">
                   <TableHeader>
                     <TableRow>
