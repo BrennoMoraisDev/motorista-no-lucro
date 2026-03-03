@@ -64,7 +64,7 @@ export default function ResetPassword() {
       <div className="flex flex-1 items-center justify-center px-4 py-12">
         <div className="w-full max-w-[400px] space-y-6">
           <div className="text-center">
-            <img src={logo} alt="Motorista no Lucro" className="mx-auto mb-3 h-[50px] w-auto object-contain" />
+            <img src={logo} alt="Motorista no Lucro" width={50} height={50} className="mx-auto mb-3 h-[50px] w-auto object-contain" />
             <p className="text-sm text-muted-foreground">Redefinir senha</p>
           </div>
 

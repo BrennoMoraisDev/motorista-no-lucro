@@ -50,7 +50,7 @@ export default function Register() {
         <div className="w-full max-w-[400px] space-y-6">
           {/* Logo + tagline */}
           <div className="text-center">
-            <img src={logo} alt="Motorista no Lucro" className="mx-auto mb-3 h-[50px] w-auto object-contain" />
+            <img src={logo} alt="Motorista no Lucro" width={50} height={50} className="mx-auto mb-3 h-[50px] w-auto object-contain" />
             <p className="text-sm text-muted-foreground">Controle financeiro para motoristas</p>
           </div>
 
