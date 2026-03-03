@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Star, Clock, CheckCircle, AlertTriangle, Play, DollarSign, TrendingUp, Timer } from "lucide-react";
+import { Star, Clock, CheckCircle, AlertTriangle, Play, DollarSign, TrendingUp, Timer, BarChart3, FileText, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 
@@ -28,8 +28,10 @@ function SubscriptionBanner({ profile, isReadOnly }: { profile: any; isReadOnly:
   const isAdmin = profile.email === "brennomoraisdev@gmail.com";
   if (isAdmin) {
     return (
-      <div className="flex items-center gap-3 rounded-2xl border border-primary/20 bg-primary/5 px-5 py-3">
-        <Star className="h-5 w-5 text-primary shrink-0" />
+      <div className="flex items-center gap-3 rounded-2xl border border-primary/20 bg-primary/5 px-5 py-3 backdrop-blur-sm">
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+          <Star className="h-4 w-4 text-primary" />
+        </div>
         <p className="text-sm font-semibold text-foreground">Admin – Acesso vitalício</p>
       </div>
     );
@@ -38,7 +40,9 @@ function SubscriptionBanner({ profile, isReadOnly }: { profile: any; isReadOnly:
   if (isReadOnly) {
     return (
       <div className="flex items-center gap-3 rounded-2xl border border-destructive/30 bg-destructive/5 px-5 py-3">
-        <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-destructive/10">
+          <AlertTriangle className="h-4 w-4 text-destructive" />
+        </div>
         <div className="flex-1">
           <p className="text-sm font-semibold text-foreground">Assinatura expirada</p>
           <p className="text-xs text-muted-foreground">Seus dados estão em modo leitura. Assine para continuar registrando.</p>
@@ -54,22 +58,31 @@ function SubscriptionBanner({ profile, isReadOnly }: { profile: any; isReadOnly:
     const daysLeft = Math.max(0, Math.ceil((expDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
     return (
       <div className="flex items-center gap-3 rounded-2xl border border-yellow-400/30 bg-yellow-50 dark:bg-yellow-900/10 px-5 py-3">
-        <Clock className="h-5 w-5 text-yellow-600 shrink-0" />
-        <p className="text-sm font-semibold text-foreground">Teste grátis – {daysLeft} dia{daysLeft !== 1 ? "s" : ""} restante{daysLeft !== 1 ? "s" : ""}</p>
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-yellow-100 dark:bg-yellow-900/30">
+          <Clock className="h-4 w-4 text-yellow-600" />
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-foreground">Teste grátis</p>
+          <p className="text-xs text-muted-foreground">{daysLeft} dia{daysLeft !== 1 ? "s" : ""} restante{daysLeft !== 1 ? "s" : ""}</p>
+        </div>
       </div>
     );
   }
   if (status === "active" && expDate && expDate > now) {
     return (
-      <div className="flex items-center gap-3 rounded-2xl border border-primary/20 bg-primary/5 px-5 py-3">
-        <CheckCircle className="h-5 w-5 text-primary shrink-0" />
+      <div className="flex items-center gap-3 rounded-2xl border border-primary/20 bg-primary/5 px-5 py-3 backdrop-blur-sm">
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+          <CheckCircle className="h-4 w-4 text-primary" />
+        </div>
         <p className="text-sm font-semibold text-foreground">Premium ativo</p>
       </div>
     );
   }
   return (
     <div className="flex items-center gap-3 rounded-2xl border border-destructive/30 bg-destructive/5 px-5 py-3">
-      <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
+      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-destructive/10">
+        <AlertTriangle className="h-4 w-4 text-destructive" />
+      </div>
       <p className="text-sm font-semibold text-foreground">Assinatura expirada</p>
     </div>
   );
@@ -83,6 +96,18 @@ interface TodaySummary {
   ninety_nine_rides: number | null;
   indrive_rides: number | null;
   private_rides: number | null;
+}
+
+function StatItem({ icon, label, value, accent }: { icon: React.ReactNode; label: string; value: string; accent?: string }) {
+  return (
+    <div className="flex flex-col items-center gap-1.5 p-3">
+      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted/60">
+        {icon}
+      </div>
+      <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">{label}</p>
+      <p className={`text-base font-bold ${accent || "text-foreground"}`}>{value}</p>
+    </div>
+  );
 }
 
 export default function Dashboard() {
@@ -120,11 +145,12 @@ export default function Dashboard() {
 
   return (
     <Layout>
-      <div className="container mx-auto max-w-lg px-4 py-8 space-y-5">
-        {/* Greeting */}
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
-            {getGreeting()}, {profile?.name?.split(" ")[0] || "Motorista"}! 👋
+      <div className="container mx-auto max-w-lg px-4 py-8 space-y-6">
+        {/* Greeting section */}
+        <div className="space-y-1">
+          <p className="text-sm text-muted-foreground font-medium">{getGreeting()}</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
+            {profile?.name?.split(" ")[0] || "Motorista"} 👋
           </h1>
         </div>
 
@@ -133,7 +159,7 @@ export default function Dashboard() {
 
         {/* CTA to subscribe when read-only */}
         {isReadOnly && (
-          <Button className="w-full rounded-xl" onClick={() => navigate("/assinar")}>
+          <Button className="w-full rounded-xl h-12 text-base font-semibold shadow-lg" onClick={() => navigate("/assinar")}>
             Assinar agora
           </Button>
         )}
@@ -141,52 +167,58 @@ export default function Dashboard() {
         {/* Shift CTA - hidden when read-only */}
         {!isReadOnly && (
           <Card
-            className="rounded-2xl border-primary/20 bg-primary/5 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+            className="group rounded-2xl border-0 shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden"
+            style={{
+              background: "linear-gradient(135deg, hsl(var(--primary)), hsl(142, 72%, 48%))",
+            }}
             onClick={() => navigate("/turno")}
           >
             <CardContent className="flex items-center gap-4 p-5">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-sm text-white group-hover:scale-105 transition-transform">
                 <Play className="h-7 w-7" />
               </div>
               <div className="flex-1">
-                <p className="text-lg font-bold text-foreground">
+                <p className="text-lg font-bold text-white">
                   {activeShift ? "Continuar Turno" : "Iniciar Turno"}
                 </p>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-white/70">
                   {activeShift ? "Você tem um turno ativo" : "Comece a cronometrar seu dia"}
                 </p>
               </div>
-              <Button size="sm" className="rounded-xl">Ir</Button>
+              <ChevronRight className="h-5 w-5 text-white/50 group-hover:translate-x-1 transition-transform" />
             </CardContent>
           </Card>
         )}
 
         {/* Today summary */}
         {todayRecord && (
-          <Card className="rounded-2xl">
-            <CardContent className="p-5 space-y-3">
-              <p className="text-sm font-semibold text-muted-foreground">Resumo de hoje</p>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="text-center">
-                  <DollarSign className="h-4 w-4 mx-auto text-primary mb-1" />
-                  <p className="text-xs text-muted-foreground">Faturamento</p>
-                  <p className="text-sm font-bold text-foreground">{fmt(todayRecord.total_faturamento ?? 0)}</p>
-                </div>
-                <div className="text-center">
-                  <TrendingUp className="h-4 w-4 mx-auto text-primary mb-1" />
-                  <p className="text-xs text-muted-foreground">Lucro</p>
-                  <p className={`text-sm font-bold ${(todayRecord.lucro_liquido ?? 0) >= 0 ? "text-primary" : "text-destructive"}`}>
-                    {fmt(todayRecord.lucro_liquido ?? 0)}
-                  </p>
-                </div>
-                <div className="text-center">
-                  <Timer className="h-4 w-4 mx-auto text-muted-foreground mb-1" />
-                  <p className="text-xs text-muted-foreground">Tempo</p>
-                  <p className="text-sm font-bold text-foreground">{formatTime(todayRecord.tempo_ativo_segundos ?? 0)}</p>
-                </div>
+          <Card className="rounded-2xl border-0 shadow-md overflow-hidden">
+            <CardContent className="p-0">
+              <div className="px-5 pt-4 pb-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Resumo de hoje</p>
+              </div>
+              <div className="grid grid-cols-3 divide-x divide-border">
+                <StatItem
+                  icon={<DollarSign className="h-4 w-4 text-primary" />}
+                  label="Faturamento"
+                  value={fmt(todayRecord.total_faturamento ?? 0)}
+                />
+                <StatItem
+                  icon={<TrendingUp className="h-4 w-4 text-primary" />}
+                  label="Lucro"
+                  value={fmt(todayRecord.lucro_liquido ?? 0)}
+                  accent={(todayRecord.lucro_liquido ?? 0) >= 0 ? "text-primary" : "text-destructive"}
+                />
+                <StatItem
+                  icon={<Timer className="h-4 w-4 text-muted-foreground" />}
+                  label="Tempo"
+                  value={formatTime(todayRecord.tempo_ativo_segundos ?? 0)}
+                />
               </div>
               {totalCorridas > 0 && (
-                <p className="text-xs text-center text-muted-foreground">{totalCorridas} corrida{totalCorridas !== 1 ? "s" : ""} hoje</p>
+                <div className="border-t border-border px-5 py-2.5">
+                  <p className="text-xs text-center text-muted-foreground font-medium">{totalCorridas} corrida{totalCorridas !== 1 ? "s" : ""} realizadas hoje</p>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -195,18 +227,29 @@ export default function Dashboard() {
         {/* Quick actions - hidden when read-only */}
         {!isReadOnly && (
           <div className="grid grid-cols-2 gap-3">
-            <Button variant="outline" className="rounded-xl h-12" onClick={() => navigate("/finalizar-dia")}>
-              Finalizar Dia
+            <Button
+              variant="outline"
+              className="rounded-xl h-14 flex flex-col items-center gap-1 border-border/50 hover:border-primary/30 hover:bg-primary/5 transition-colors"
+              onClick={() => navigate("/finalizar-dia")}
+            >
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs font-medium">Finalizar Dia</span>
             </Button>
-            <Button variant="outline" className="rounded-xl h-12" onClick={() => navigate("/relatorios")}>
-              Relatórios
+            <Button
+              variant="outline"
+              className="rounded-xl h-14 flex flex-col items-center gap-1 border-border/50 hover:border-primary/30 hover:bg-primary/5 transition-colors"
+              onClick={() => navigate("/relatorios")}
+            >
+              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs font-medium">Relatórios</span>
             </Button>
           </div>
         )}
 
         {/* Read-only: only show reports link */}
         {isReadOnly && (
-          <Button variant="outline" className="w-full rounded-xl h-12" onClick={() => navigate("/relatorios")}>
+          <Button variant="outline" className="w-full rounded-xl h-14 flex items-center gap-2" onClick={() => navigate("/relatorios")}>
+            <BarChart3 className="h-4 w-4" />
             Ver Relatórios
           </Button>
         )}
