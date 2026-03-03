@@ -1,7 +1,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import logo from "@/assets/logo.png";
+import logo from "@/assets/logo-small.webp";
 import { LogOut, LogIn, UserPlus, User, Settings, Menu, Home, Timer, BarChart3, Shield } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import { ReactNode, useState } from "react";
