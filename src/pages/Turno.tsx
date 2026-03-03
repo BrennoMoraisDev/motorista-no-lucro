@@ -356,6 +356,16 @@ export default function Turno() {
               )}
             </div>
 
+            {isActive && (
+              <Button
+                variant="outline"
+                className="w-full h-12 rounded-xl"
+                onClick={() => navigate("/finalizar-dia" + (shift ? `?shift=${shift.id}` : ""))}
+              >
+                Registrar Dia
+              </Button>
+            )}
+
             {metaPorHora === 0 && (
               <p className="text-xs text-center text-muted-foreground">
                 Configure suas metas em{" "}

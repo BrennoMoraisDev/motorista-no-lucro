@@ -43,9 +43,9 @@ export default function Layout({ children }: LayoutProps) {
         }}
       >
         <div className="container mx-auto flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4">
-          <Link to="/" className="flex items-center gap-3">
-            <img src={logo} alt="Motorista no Lucro" className="h-[50px] w-auto sm:h-[60px] object-contain" />
-            <span className="text-lg sm:text-2xl font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+          <Link to="/" className="flex items-center gap-2 sm:gap-3 min-w-0 shrink">
+            <img src={logo} alt="Motorista no Lucro" className="h-[40px] w-auto sm:h-[60px] object-contain shrink-0" />
+            <span className="hidden sm:inline text-lg sm:text-2xl font-bold text-white whitespace-nowrap" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
               Motorista no Lucro
             </span>
           </Link>
