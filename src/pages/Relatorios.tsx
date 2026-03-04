@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Loader2, DollarSign, TrendingUp, Fuel, Clock, Car, Download, AlertCircle, Pencil, Trash2 } from "lucide-react";
+import { Loader2, Fuel, Clock, Car, Download, AlertCircle, Pencil, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import {
@@ -378,21 +378,68 @@ export default function Relatorios() {
           </Card>
         ) : (
           <>
-            {/* Summary cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-              <SummaryCard icon={<DollarSign className="h-4 w-4" />} label="Faturamento" value={fmt(summary.totalFaturamento)} color="text-primary" />
-              <SummaryCard icon={<Fuel className="h-4 w-4" />} label="Gastos" value={fmt(summary.totalGastos)} color="text-destructive" />
-              <SummaryCard icon={<TrendingUp className="h-4 w-4" />} label="Lucro líquido" value={fmt(summary.lucroLiquido)} color={summary.lucroLiquido >= 0 ? "text-primary" : "text-destructive"} />
-              <SummaryCard icon={<Clock className="h-4 w-4" />} label="Média/hora" value={fmt(summary.mediaHora)} color="text-foreground" />
-              <SummaryCard icon={<Car className="h-4 w-4" />} label="Corridas" value={String(summary.totalCorridas)} color="text-foreground" />
-            </div>
+            {/* 💰 RESULTADO */}
+            <Card className="rounded-2xl border-border/50 shadow-sm">
+              <CardHeader className="pb-2 pt-4 px-5">
+                <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">💰 Resultado</CardTitle>
+              </CardHeader>
+              <CardContent className="px-5 pb-4 grid grid-cols-3 gap-3 text-center">
+                <div className="rounded-xl bg-muted/60 p-3">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Faturamento</p>
+                  <p className="text-base font-bold text-primary">{fmt(summary.totalFaturamento)}</p>
+                </div>
+                <div className="rounded-xl bg-muted/60 p-3">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Gastos</p>
+                  <p className="text-base font-bold text-destructive">{fmt(summary.totalGastos)}</p>
+                </div>
+                <div className="rounded-xl bg-muted/60 p-3">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Lucro líquido</p>
+                  <p className={`text-base font-bold ${summary.lucroLiquido >= 0 ? "text-primary" : "text-destructive"}`}>{fmt(summary.lucroLiquido)}</p>
+                </div>
+              </CardContent>
+            </Card>
 
-            {/* Percentages row */}
-            <div className="flex flex-wrap gap-3 justify-center text-xs text-muted-foreground">
-              <span>% Lucro: <strong className="text-foreground">{pct(summary.pctLucro)}</strong></span>
-              <span>Km total: <strong className="text-foreground">{summary.kmTotal.toFixed(1)} km</strong></span>
-              <span>Horas ativas: <strong className="text-foreground">{summary.horasAtivas.toFixed(1)}h</strong></span>
-            </div>
+            {/* 🚗 PRODUTIVIDADE */}
+            <Card className="rounded-2xl border-border/50 shadow-sm">
+              <CardHeader className="pb-2 pt-4 px-5">
+                <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">🚗 Produtividade</CardTitle>
+              </CardHeader>
+              <CardContent className="px-5 pb-4 grid grid-cols-3 gap-3 text-center">
+                <div className="rounded-xl bg-muted/60 p-3">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Corridas</p>
+                  <p className="text-base font-bold text-foreground">{summary.totalCorridas}</p>
+                </div>
+                <div className="rounded-xl bg-muted/60 p-3">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Horas ativas</p>
+                  <p className="text-base font-bold text-foreground">{summary.horasAtivas.toFixed(1)}h</p>
+                </div>
+                <div className="rounded-xl bg-muted/60 p-3">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Média/hora</p>
+                  <p className="text-base font-bold text-foreground">{fmt(summary.mediaHora)}</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* ⚙️ EFICIÊNCIA */}
+            <Card className="rounded-2xl border-border/50 shadow-sm">
+              <CardHeader className="pb-2 pt-4 px-5">
+                <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">⚙️ Eficiência</CardTitle>
+              </CardHeader>
+              <CardContent className="px-5 pb-4 grid grid-cols-3 gap-3 text-center">
+                <div className="rounded-xl bg-muted/60 p-3">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Lucro/Km</p>
+                  <p className="text-base font-bold text-foreground">{summary.kmTotal > 0 ? fmt(summary.lucroLiquido / summary.kmTotal) : "–"}</p>
+                </div>
+                <div className="rounded-xl bg-muted/60 p-3">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Custo/Km</p>
+                  <p className="text-base font-bold text-foreground">{summary.kmTotal > 0 ? fmt(summary.totalGastos / summary.kmTotal) : "–"}</p>
+                </div>
+                <div className="rounded-xl bg-muted/60 p-3">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">% Lucro</p>
+                  <p className={`text-base font-bold ${summary.pctLucro >= 0 ? "text-primary" : "text-destructive"}`}>{pct(summary.pctLucro)}</p>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Charts */}
             {chartData.length > 1 && (
@@ -540,13 +587,3 @@ export default function Relatorios() {
   );
 }
 
-function SummaryCard({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: string; color: string }) {
-  return (
-    <Card>
-      <CardContent className="p-3 text-center space-y-1">
-        <div className="flex items-center justify-center gap-1 text-muted-foreground">{icon}<span className="text-xs">{label}</span></div>
-        <p className={`text-lg font-bold ${color}`}>{value}</p>
-      </CardContent>
-    </Card>
-  );
-}
