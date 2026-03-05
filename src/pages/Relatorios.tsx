@@ -50,6 +50,7 @@ import {
   parseISO,
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { generatePDFReport } from "@/lib/pdfExport";
 
 interface DailyRecordRaw {
   id: string;
@@ -293,6 +294,11 @@ export default function Relatorios() {
     }));
   }, [records]);
 
+  const exportPDF = () => {
+    if (!records.length || !profile) return;
+    generatePDFReport(records as any, profile.name || "Motorista", `${period} - ${refDate}`);
+  };
+
   const exportCSV = () => {
     if (!records.length) return;
     const headers = [
@@ -360,6 +366,9 @@ export default function Relatorios() {
             className="max-w-[200px]"
             {...(period === "annual" ? { min: 2020, max: 2099 } : {})}
           />
+          <Button variant="outline" size="sm" onClick={exportPDF} disabled={!records.length}>
+            <Download className="h-4 w-4 mr-1" /> PDF
+          </Button>
           <Button variant="outline" size="sm" onClick={exportCSV} disabled={!records.length}>
             <Download className="h-4 w-4 mr-1" /> CSV
           </Button>

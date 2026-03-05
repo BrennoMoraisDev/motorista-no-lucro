@@ -35,6 +35,10 @@ export default function Configuracoes() {
   const [incluirFinanciamento, setIncluirFinanciamento] = useState(true);
   const [savingVeiculo, setSavingVeiculo] = useState(false);
 
+  // Combustível state
+  const [ultimoAbastecimento, setUltimoAbastecimento] = useState({ km: 0, litros: 0 });
+  const [consumoMedio, setConsumoMedio] = useState(0);
+
   useEffect(() => {
     if (!user) return;
     (async () => {
@@ -59,6 +63,15 @@ export default function Configuracoes() {
         setIncluirManutencao(v.incluir_manutencao);
         setIncluirSeguro(v.incluir_seguro);
         setIncluirFinanciamento(v.incluir_financiamento);
+        if (v.ultimo_abastecimento_km && v.ultimo_abastecimento_litros) {
+          setUltimoAbastecimento({
+            km: v.ultimo_abastecimento_km,
+            litros: v.ultimo_abastecimento_litros,
+          });
+        }
+        if (v.consumo_medio) {
+          setConsumoMedio(v.consumo_medio);
+        }
       }
       setLoading(false);
     })();
@@ -163,6 +176,7 @@ export default function Configuracoes() {
           <TabsList className="mb-6 w-full grid grid-cols-2">
             <TabsTrigger value="metas" className="gap-2"><Target className="h-4 w-4" />Metas</TabsTrigger>
             <TabsTrigger value="veiculo" className="gap-2"><Car className="h-4 w-4" />Veículo</TabsTrigger>
+            <TabsTrigger value="combustivel" className="gap-2">⛽ Combustível</TabsTrigger>
           </TabsList>
 
           {/* METAS TAB */}
@@ -259,6 +273,48 @@ export default function Configuracoes() {
                     )}
                   </Button>
                 </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* COMBUSTÍVEL TAB */}
+          <TabsContent value="combustivel">
+            <Card className="rounded-2xl border-border shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-lg">Eficiência de Combustível</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-5">
+                  <div className="rounded-xl bg-muted p-4 space-y-3">
+                    <p className="text-sm font-semibold text-foreground">Último Abastecimento Registrado</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-xs text-muted-foreground">KM</p>
+                        <p className="text-lg font-bold text-primary">{ultimoAbastecimento.km.toLocaleString("pt-BR")}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Litros</p>
+                        <p className="text-lg font-bold text-primary">{ultimoAbastecimento.litros.toFixed(2)}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {consumoMedio > 0 && (
+                    <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-center">
+                      <p className="text-sm text-muted-foreground">Consumo Médio</p>
+                      <p className="text-3xl font-bold text-primary">{consumoMedio.toFixed(2)} km/l</p>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Custo por km: R$ {((ultimoAbastecimento.litros > 0 ? 1 / consumoMedio : 0) * 5).toFixed(2)}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="rounded-xl bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-900/30 p-4">
+                    <p className="text-sm text-blue-900 dark:text-blue-100">
+                      💡 O consumo é calculado automaticamente quando você registra um novo abastecimento no Dashboard durante o "Finalizar Dia".
+                    </p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

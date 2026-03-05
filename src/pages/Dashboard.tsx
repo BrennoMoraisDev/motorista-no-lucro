@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
+import { WeeklyGainsChart } from "@/components/WeeklyGainsChart";
+import { PlatformComparisonChart } from "@/components/PlatformComparisonChart";
 
 function getGreeting(): string {
   const h = new Date().getHours();
@@ -370,29 +372,29 @@ export default function Dashboard() {
                 {isPaused && <p className="text-sm text-yellow-600 font-medium animate-pulse mt-1">⏸ Pausado</p>}
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {!isActive ? (
-                  <Button onClick={handleStart} disabled={actionLoading} className="w-full h-14 text-lg rounded-xl" size="lg">
-                    {actionLoading ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Play className="h-5 w-5 mr-2" />}
+                  <Button onClick={handleStart} disabled={actionLoading} className="w-full h-16 text-xl rounded-2xl font-bold shadow-lg" size="lg">
+                    {actionLoading ? <Loader2 className="h-6 w-6 animate-spin mr-3" /> : <Play className="h-6 w-6 mr-3" />}
                     Iniciar Turno
                   </Button>
                 ) : (
                   <>
                     {!isPaused ? (
                       <Button onClick={handlePause} disabled={actionLoading}
-                        className="w-full h-14 text-lg rounded-xl border-2 border-amber-500 bg-amber-500 text-white font-semibold hover:bg-amber-600" size="lg">
-                        {actionLoading ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Pause className="h-5 w-5 mr-2" />}
+                        className="w-full h-16 text-xl rounded-2xl border-3 border-amber-500 bg-amber-500 text-white font-bold hover:bg-amber-600 shadow-lg" size="lg">
+                        {actionLoading ? <Loader2 className="h-6 w-6 animate-spin mr-3" /> : <Pause className="h-6 w-6 mr-3" />}
                         Pausar
                       </Button>
                     ) : (
                       <Button onClick={handleResume} disabled={actionLoading}
-                        className="w-full h-14 text-lg rounded-xl border-2 border-emerald-600 bg-emerald-600 text-white font-semibold hover:bg-emerald-700" size="lg">
-                        {actionLoading ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Play className="h-5 w-5 mr-2" />}
+                        className="w-full h-16 text-xl rounded-2xl border-3 border-emerald-600 bg-emerald-600 text-white font-bold hover:bg-emerald-700 shadow-lg" size="lg">
+                        {actionLoading ? <Loader2 className="h-6 w-6 animate-spin mr-3" /> : <Play className="h-6 w-6 mr-3" />}
                         Retomar
                       </Button>
                     )}
-                    <Button onClick={handleStop} disabled={actionLoading} variant="destructive" className="w-full h-14 text-lg rounded-xl" size="lg">
-                      {actionLoading ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Square className="h-5 w-5 mr-2" />}
+                    <Button onClick={handleStop} disabled={actionLoading} variant="destructive" className="w-full h-16 text-xl rounded-2xl font-bold shadow-lg" size="lg">
+                      {actionLoading ? <Loader2 className="h-6 w-6 animate-spin mr-3" /> : <Square className="h-6 w-6 mr-3" />}
                       Encerrar Turno
                     </Button>
                   </>
@@ -400,7 +402,7 @@ export default function Dashboard() {
               </div>
 
               {isActive && (
-                <Button variant="outline" className="w-full h-12 rounded-xl" onClick={() => navigate("/finalizar-dia" + (shift ? `?shift=${shift.id}` : ""))}>
+                <Button variant="outline" className="w-full h-14 rounded-xl text-base font-semibold border-2" onClick={() => navigate("/finalizar-dia" + (shift ? `?shift=${shift.id}` : ""))}>
                   Registrar Dia
                 </Button>
               )}
@@ -452,23 +454,29 @@ export default function Dashboard() {
         {/* ─── Efficiency ────────────────────────────────────── */}
         {todayRecord && <EfficiencyCard todayProfit={todayProfit} todaySeconds={todaySeconds} weekRecords={weekRecords} />}
 
+        {/* ─── Weekly Gains Chart ────────────────────────────── */}
+        {weekRecords.length > 0 && <WeeklyGainsChart records={weekRecords} />}
+
+        {/* ─── Platform Comparison ────────────────────────────── */}
+        {weekRecords.length > 0 && <PlatformComparisonChart records={weekRecords as any} />}
+
         {/* Quick actions */}
         {!isReadOnly && (
           <div className="grid grid-cols-2 gap-3">
-            <Button variant="outline" className="rounded-xl h-14 flex flex-col items-center gap-1 border-border/50 hover:border-primary/30 hover:bg-primary/5 transition-colors" onClick={() => navigate("/finalizar-dia")}>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs font-medium">Finalizar Dia</span>
+            <Button variant="outline" className="rounded-2xl h-16 flex flex-col items-center gap-2 border-2 border-border/50 hover:border-primary/50 hover:bg-primary/10 transition-all" onClick={() => navigate("/finalizar-dia")}>
+              <FileText className="h-5 w-5 text-foreground" />
+              <span className="text-sm font-semibold">Finalizar Dia</span>
             </Button>
-            <Button variant="outline" className="rounded-xl h-14 flex flex-col items-center gap-1 border-border/50 hover:border-primary/30 hover:bg-primary/5 transition-colors" onClick={() => navigate("/relatorios")}>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs font-medium">Relatórios</span>
+            <Button variant="outline" className="rounded-2xl h-16 flex flex-col items-center gap-2 border-2 border-border/50 hover:border-primary/50 hover:bg-primary/10 transition-all" onClick={() => navigate("/relatorios")}>
+              <BarChart3 className="h-5 w-5 text-foreground" />
+              <span className="text-sm font-semibold">Relatórios</span>
             </Button>
           </div>
         )}
 
         {isReadOnly && (
-          <Button variant="outline" className="w-full rounded-xl h-14 flex items-center gap-2" onClick={() => navigate("/relatorios")}>
-            <BarChart3 className="h-4 w-4" /> Ver Relatórios
+          <Button variant="outline" className="w-full rounded-2xl h-16 flex items-center gap-3 text-base font-semibold border-2" onClick={() => navigate("/relatorios")}>
+            <BarChart3 className="h-5 w-5" /> Ver Relatórios
           </Button>
         )}
       </div>
