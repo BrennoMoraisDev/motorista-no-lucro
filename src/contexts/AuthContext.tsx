@@ -111,6 +111,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!profile) return false;
     if (isAdmin) return false;
     if (hasAccess) return false;
+    
+    // Problem 8: Step 257-262 - When trial expires, update to free/read-only
     const status = profile.status_assinatura;
     // blocked accounts get no access at all
     if (status === "blocked") return false;

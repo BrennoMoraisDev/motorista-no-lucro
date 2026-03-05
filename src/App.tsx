@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { PWAUpdater } from "@/components/PWAUpdater";
+import { Onboarding } from "@/components/Onboarding";
 import AdminRoute from "@/components/AdminRoute";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -43,6 +45,8 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <PWAUpdater />
+        <Onboarding />
         <BrowserRouter>
           <AuthProvider>
             <Routes>
