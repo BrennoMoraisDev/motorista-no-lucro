@@ -14,7 +14,6 @@ import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
-import Turno from "./pages/Turno";
 import FinalizarDia from "./pages/FinalizarDia";
 import Relatorios from "./pages/Relatorios";
 import Perfil from "./pages/Perfil";
@@ -28,7 +27,7 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, isRecovering } = useAuth();
   const location = useLocation();
   
   if (loading) {
@@ -39,9 +38,14 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
     );
   }
   
-  // Security: If user is logged in, redirect to dashboard
-  // EXCEPT if they are on the reset-password page (which needs to handle recovery)
-  if (user && location.pathname !== "/reset-password" && location.pathname !== "/forgot-password") {
+  // SECURITY: If we are in recovery mode, only allow the reset-password page
+  const isRecoveryUrl = window.location.hash && (window.location.hash.includes("type=recovery") || window.location.hash.includes("access_token="));
+  if ((isRecovering || isRecoveryUrl) && location.pathname !== "/reset-password") {
+    return <Navigate to="/reset-password" replace />;
+  }
+  
+  // If user is logged in (and not in recovery), redirect to dashboard
+  if (user && !isRecovering && !isRecoveryUrl && location.pathname !== "/reset-password") {
     return <Navigate to="/dashboard" replace />;
   }
   
@@ -65,7 +69,6 @@ const App = () => (
               <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
               <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-              <Route path="/turno" element={<Navigate to="/dashboard" replace />} />
               <Route path="/finalizar-dia" element={<ProtectedRoute><FinalizarDia /></ProtectedRoute>} />
               <Route path="/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
               <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />

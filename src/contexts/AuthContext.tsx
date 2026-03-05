@@ -22,6 +22,7 @@ interface AuthContextType {
   hasAccess: boolean;
   isReadOnly: boolean;
   isAdmin: boolean;
+  isRecovering: boolean;
   signUp: (name: string, email: string, password: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -35,6 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isRecovering, setIsRecovering] = useState(false);
 
   const fetchProfile = async (userId: string) => {
     const { data } = await supabase
@@ -50,14 +52,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    // Initial check for recovery mode in URL
+    const checkInitialRecovery = () => {
+      const hash = window.location.hash;
+      const isRecovery = hash && (hash.includes("type=recovery") || hash.includes("access_token="));
+      if (isRecovery) {
+        setIsRecovering(true);
+        return true;
+      }
+      return false;
+    };
+
+    const isInitialRecovery = checkInitialRecovery();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        // SECURITY FIX: During password recovery, do NOT set the user state
-        // This prevents automatic login to the dashboard
-        // The user must complete the password reset first
+        console.log("Auth Event:", event);
         
+        // SECURITY: If it's a recovery event, force isRecovering to true
         if (event === "PASSWORD_RECOVERY") {
-          // Password recovery event - do not set user, keep them logged out
+          setIsRecovering(true);
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+          setLoading(false);
+          return;
+        }
+
+        // If we are in recovery mode (detected by URL or event), 
+        // we MUST NOT set the user/session for the rest of the app
+        if (isRecovering || (window.location.hash && window.location.hash.includes("type=recovery"))) {
           setSession(null);
           setUser(null);
           setProfile(null);
@@ -69,7 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          setTimeout(() => fetchProfile(session.user.id), 0);
+          fetchProfile(session.user.id);
         } else {
           setProfile(null);
         }
@@ -77,13 +101,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
+    // Initial session fetch
     supabase.auth.getSession().then(({ data: { session } }) => {
-      // Check if we're in a password recovery flow
-      const hash = window.location.hash;
-      const isPasswordRecovery = hash && hash.includes("type=recovery");
-      
-      if (isPasswordRecovery) {
-        // Do not set session during password recovery
+      if (isInitialRecovery || (window.location.hash && window.location.hash.includes("type=recovery"))) {
+        setIsRecovering(true);
         setSession(null);
         setUser(null);
         setProfile(null);
@@ -96,7 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [isRecovering]);
 
   const signUp = async (name: string, email: string, password: string) => {
     const { error } = await supabase.auth.signUp({
@@ -115,6 +136,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     await supabase.auth.signOut();
     setProfile(null);
+    setSession(null);
+    setUser(null);
+    setIsRecovering(false);
   };
 
   const isAdmin = profile?.email === ADMIN_EMAIL;
@@ -124,28 +148,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (isAdmin) return true;
     const expDate = profile.data_expiracao ? new Date(profile.data_expiracao) : null;
     const now = new Date();
-    // Access granted if expiration date is in the future, regardless of status
-    // This ensures canceled users keep access until their paid period ends
     if (expDate && expDate > now) return true;
-    // Admin email without expiration = lifetime access (handled above)
     return false;
   })();
 
-  // Read-only: expired but not blocked — can view data but not write
   const isReadOnly = (() => {
     if (!profile) return false;
     if (isAdmin) return false;
     if (hasAccess) return false;
-    
-    // Problem 8: Step 257-262 - When trial expires, update to free/read-only
     const status = profile.status_assinatura;
-    // blocked accounts get no access at all
     if (status === "blocked") return false;
-    return true; // expired trial, expired active, expired canceled
+    return true;
   })();
 
   return (
-    <AuthContext.Provider value={{ user, profile, session, loading, hasAccess, isReadOnly, isAdmin, signUp, signIn, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ 
+      user, profile, session, loading, hasAccess, isReadOnly, isAdmin, isRecovering,
+      signUp, signIn, signOut, refreshProfile 
+    }}>
       {children}
     </AuthContext.Provider>
   );

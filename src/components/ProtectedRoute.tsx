@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 const FREE_ROUTES = ["/assinar", "/perfil", "/configuracoes"];
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading, hasAccess, isReadOnly, profile } = useAuth();
+  const { user, loading, hasAccess, isReadOnly, isRecovering } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -13,6 +13,12 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     );
+  }
+
+  // SECURITY: If we are in recovery mode, block access to protected routes
+  // and redirect to reset-password page
+  if (isRecovering || (window.location.hash && window.location.hash.includes("type=recovery"))) {
+    return <Navigate to="/reset-password" replace />;
   }
 
   if (!user) return <Navigate to="/login" replace />;
