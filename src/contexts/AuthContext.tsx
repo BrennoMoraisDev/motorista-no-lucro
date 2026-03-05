@@ -52,9 +52,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        // Problem: Security - Prevent auto-login to dashboard during password recovery
-        // If the event is PASSWORD_RECOVERY, we keep the user but don't redirect to dashboard
-        // The ProtectedRoute and App.tsx PublicRoute will handle the logic
+        // SECURITY FIX: During password recovery, do NOT set the user state
+        // This prevents automatic login to the dashboard
+        // The user must complete the password reset first
+        
+        if (event === "PASSWORD_RECOVERY") {
+          // Password recovery event - do not set user, keep them logged out
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+          setLoading(false);
+          return;
+        }
         
         setSession(session);
         setUser(session?.user ?? null);
@@ -69,9 +78,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) fetchProfile(session.user.id);
+      // Check if we're in a password recovery flow
+      const hash = window.location.hash;
+      const isPasswordRecovery = hash && hash.includes("type=recovery");
+      
+      if (isPasswordRecovery) {
+        // Do not set session during password recovery
+        setSession(null);
+        setUser(null);
+        setProfile(null);
+      } else {
+        setSession(session);
+        setUser(session?.user ?? null);
+        if (session?.user) fetchProfile(session.user.id);
+      }
       setLoading(false);
     });
 
