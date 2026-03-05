@@ -120,12 +120,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [isRecovering]);
 
   const signUp = async (name: string, email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { name } },
+      options: { 
+        data: { name },
+        emailRedirectTo: `${window.location.origin}/dashboard`
+      },
     });
+    
     if (error) throw error;
+
+    // Se o usuário foi criado com sucesso e temos o ID
+    if (data.user) {
+      // Pequeno delay para permitir que o trigger do Supabase tente criar o perfil primeiro
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Verifica se o perfil já foi criado pelo trigger
+      const { data: existingProfile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("user_id", data.user.id)
+        .single();
+
+      // Se o perfil não existe, cria manualmente (fallback)
+      if (!existingProfile) {
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .insert([
+            {
+              user_id: data.user.id,
+              name: name,
+              email: email,
+              plano: 'trial',
+              status_assinatura: 'active',
+              data_expiracao: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+            }
+          ]);
+        
+        if (profileError) {
+          console.error("Erro ao criar perfil manualmente:", profileError);
+          // Não lançamos erro aqui para não travar o fluxo de signup se o auth funcionou
+        }
+      }
+      
+      // Atualiza o estado local
+      await fetchProfile(data.user.id);
+    }
   };
 
   const signIn = async (email: string, password: string) => {
