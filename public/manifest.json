@@ -4,8 +4,10 @@
   "description": "Controle financeiro para motoristas de aplicativo",
   "start_url": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "theme_color": "#2563eb",
   "background_color": "#f9fafb",
+  "lang": "pt-BR",
   "icons": [
     { "src": "/icons/icon-72x72.png", "sizes": "72x72", "type": "image/png" },
     { "src": "/icons/icon-96x96.png", "sizes": "96x96", "type": "image/png" },

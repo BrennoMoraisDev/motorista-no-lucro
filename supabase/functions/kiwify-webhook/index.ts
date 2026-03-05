@@ -14,12 +14,14 @@ function json(data: unknown, status = 200) {
 }
 
 function extractEmail(payload: any): string | null {
-  // Problem 1: Step 34 - order.Customer.email
+  // Problem 2: Audit Kiwify email capture
+  // Kiwify payload structure can vary, checking multiple locations
   const email = payload.order?.Customer?.email || 
                 payload.Customer?.email || 
                 payload.customer?.email || 
                 payload.buyer?.email || 
-                payload.email;
+                payload.email ||
+                payload.customer_email;
   
   if (email) return String(email).toLowerCase().trim();
   return null;
@@ -41,20 +43,21 @@ function extractEventId(payload: any): string {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   
-  // Problem 1: Step 69-73 - Always respond 200 to avoid Kiwify failure
+  // Always respond 200 to Kiwify to prevent webhook blocking
   try {
     if (req.method === "GET") return json({ status: "ok" });
     if (req.method !== "POST") return json({ error: "Method not allowed" }, 200);
 
     const rawBody = await req.text();
-    // Problem 6: Log webhook received
-    console.log("Webhook recebido:", rawBody);
+    // Problem 8: Audit Logs - Webhook received
+    console.log("--- WEBHOOK RECEBIDO ---");
+    console.log("Raw payload:", rawBody);
 
     let payload: any;
     try { 
       payload = JSON.parse(rawBody); 
     } catch {
-      console.error("Erro: JSON inválido");
+      console.error("ERRO: JSON inválido");
       return json({ error: "Invalid JSON" }, 200);
     }
 
@@ -62,9 +65,10 @@ Deno.serve(async (req) => {
     const eventType = extractEventType(payload);
     const eventId = extractEventId(payload);
 
-    // Problem 1: Step 60-61 - Log event and email
-    console.log("Evento recebido:", eventType);
-    console.log("Email do cliente:", customerEmail);
+    // Problem 8: Audit Logs - Event details
+    console.log(`Evento: ${eventType}`);
+    console.log(`Email do Cliente: ${customerEmail}`);
+    console.log(`ID do Evento: ${eventId}`);
 
     const db = createClient(
       Deno.env.get("SUPABASE_URL")!, 
@@ -72,59 +76,57 @@ Deno.serve(async (req) => {
     );
 
     if (!customerEmail) {
-      console.error("Erro: Email não encontrado no payload");
+      console.error("ERRO: Email não encontrado no payload Kiwify");
       return json({ status: "error", message: "Email not found" }, 200);
     }
 
-    // Find user by email
+    // Find user by email (using the unique index created in migration)
     const { data: profile, error: profileError } = await db
       .from("profiles")
-      .select("user_id, plano")
+      .select("user_id, plano, email")
       .eq("email", customerEmail)
       .maybeSingle();
 
     if (profileError) {
-      // Problem 6: Log DB error
-      console.error("Erro de banco ao buscar perfil:", profileError);
+      // Problem 8: Audit Logs - DB Error
+      console.error("ERRO DE BANCO (Busca Perfil):", profileError);
       return json({ status: "error", message: "Database error" }, 200);
     }
 
     if (!profile) {
-      // Problem 1: Step 65-67 - Log error if email doesn't exist but return 200
-      console.error(`Erro: Email ${customerEmail} não existe no banco`);
+      // Problem 8: Audit Logs - User not found
+      console.warn(`AVISO: Email ${customerEmail} não existe no banco de dados.`);
       return json({ status: "error", message: "User not found" }, 200);
     }
 
     const now = new Date();
     const expirationDate = new Date();
-    expirationDate.setDate(now.getDate() + 30);
+    expirationDate.setDate(now.getDate() + 30); // Standard 30 days subscription
 
     let updateData: any = null;
     let actionLabel = "";
 
-    // Problem 1: Step 26-28 - order_approved or order_paid
-    if (eventType === "order_approved" || eventType === "order_paid" || eventType.includes("paid") || eventType.includes("approved")) {
-      // Problem 1: Step 44-46 - Update plano, start_assinatura, data_expiracao
+    // Problem 2: Audit Kiwify Events mapping
+    const isApproved = ["order_approved", "order_paid", "paid", "approved", "paid_success"].includes(eventType) || eventType.includes("approved") || eventType.includes("paid");
+    const isRefunded = ["order_refunded", "refunded", "refund", "chargeback"].includes(eventType) || eventType.includes("refund");
+
+    if (isApproved) {
       updateData = {
         plano: "premium",
-        // Assuming the column name in DB is 'start_assinatura' as per request, 
-        // but let's check if it matches types.ts (it doesn't show start_assinatura in types.ts)
-        // I will use what's in types.ts but also include the requested fields if they exist in DB
         status_assinatura: "active",
         data_expiracao: expirationDate.toISOString(),
+        start_assinatura: now.toISOString(),
         updated_at: now.toISOString()
       };
-      actionLabel = "Ativando Premium";
-    } 
-    // Problem 1: Step 50 - order_refunded
-    else if (eventType === "order_refunded" || eventType.includes("refund")) {
-      // Problem 1: Step 54 - Update plano = "free"
+      actionLabel = "ATIVANDO PREMIUM";
+    } else if (isRefunded) {
       updateData = {
         plano: "free",
         status_assinatura: "canceled",
+        data_expiracao: now.toISOString(), // Expire immediately on refund
         updated_at: now.toISOString()
       };
-      actionLabel = "Revogando Premium (Reembolso)";
+      actionLabel = "REVOGANDO PREMIUM (REEMBOLSO)";
     }
 
     if (updateData) {
@@ -136,32 +138,33 @@ Deno.serve(async (req) => {
         .eq("user_id", profile.user_id);
 
       if (updateError) {
-        // Problem 6: Log DB error
-        console.error(`Erro ao atualizar perfil (${customerEmail}):`, updateError);
+        // Problem 8: Audit Logs - DB Update Error
+        console.error(`ERRO AO ATUALIZAR PERFIL (${customerEmail}):`, updateError);
         return json({ status: "error", message: "Update failed" }, 200);
       }
 
-      // Update subscriptions table as well to keep consistency
+      // Sync with subscriptions table
       await db.from("subscriptions").upsert({
         user_id: profile.user_id,
         kiwify_transaction_id: eventId,
         status: updateData.status_assinatura,
         plan_type: updateData.plano,
-        current_period_start: now.toISOString(),
+        current_period_start: updateData.start_assinatura || now.toISOString(),
         current_period_end: updateData.data_expiracao || now.toISOString(),
         updated_at: now.toISOString(),
       }, { onConflict: "user_id" });
 
-      // Problem 1: Step 62 - Log result
-      console.log(`Resultado da atualização para ${customerEmail}: Sucesso`);
+      // Problem 8: Audit Logs - Success result
+      console.log(`SUCESSO: ${actionLabel} concluído para ${customerEmail}`);
     } else {
-      console.log(`Evento ignorado: ${eventType}`);
+      console.log(`INFO: Evento '${eventType}' recebido mas ignorado (sem ação definida).`);
     }
 
+    console.log("--- FIM DO WEBHOOK ---");
     return json({ status: "ok" });
   } catch (err) {
-    // Problem 6: Log general error
-    console.error("Erro crítico no webhook:", err);
+    // Problem 8: Audit Logs - Critical error
+    console.error("ERRO CRÍTICO NO WEBHOOK:", err);
     return json({ status: "error", message: "Internal server error" }, 200);
   }
 });

@@ -340,9 +340,22 @@ export default function Dashboard() {
         <SubscriptionBanner profile={profile} isReadOnly={isReadOnly} />
 
         {isReadOnly && (
-          <Button className="w-full rounded-xl h-12 text-base font-semibold shadow-lg" onClick={() => navigate("/assinar")}>
-            Assinar agora
-          </Button>
+          <Card className="rounded-2xl border-primary/20 bg-primary/5 shadow-lg overflow-hidden animate-in fade-in slide-in-from-top-4 duration-500">
+            <CardContent className="p-6 text-center space-y-4">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                <Crown className="h-6 w-6 text-primary" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-bold text-lg">Acesso Restrito</h3>
+                <p className="text-sm text-muted-foreground">
+                  Seu período de teste expirou. Assine o Premium para continuar registrando suas corridas e acessando todas as ferramentas.
+                </p>
+              </div>
+              <Button className="w-full rounded-xl h-12 text-base font-semibold shadow-lg shadow-primary/20" onClick={() => navigate("/assinar")}>
+                Ver Planos Premium
+              </Button>
+            </CardContent>
+          </Card>
         )}
 
         {/* ─── TURNO (Cronômetro) ───────────────────────────── */}
