@@ -42,15 +42,15 @@ export default function Layout({ children }: LayoutProps) {
           background: "linear-gradient(135deg, hsl(224, 55%, 33%), hsl(224, 76%, 53%))",
         }}
       >
-        <div className="container mx-auto flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4">
-          <Link to="/" className="flex items-center gap-2 sm:gap-3 min-w-0 shrink">
-            <img src={logo} alt="Motorista no Lucro" width={60} height={60} className="h-[40px] w-auto sm:h-[60px] object-contain shrink-0" />
-            <span className="text-sm sm:text-2xl font-bold text-white whitespace-nowrap" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+        <div className="container mx-auto flex items-center justify-between px-3 py-2 sm:px-4 sm:py-3 md:px-6 md:py-4 gap-2">
+          <Link to="/" className="flex items-center gap-1 sm:gap-2 md:gap-3 min-w-0 flex-shrink-0">
+            <img src={logo} alt="Motorista no Lucro" width={60} height={60} className="h-9 w-auto sm:h-12 md:h-16 object-contain flex-shrink-0" />
+            <span className="text-xs sm:text-sm md:text-xl lg:text-2xl font-bold text-white truncate sm:whitespace-nowrap" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
               Motorista no Lucro
             </span>
           </Link>
 
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-1 sm:gap-2 md:gap-4 flex-shrink-0">
             {user ? (
               <>
                 <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")} className="hidden sm:inline-flex text-white/70 hover:bg-white/10 hover:text-white">

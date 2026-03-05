@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -9,6 +9,8 @@ export function PWAUpdater() {
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
+  const updateCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const {
     offlineReady: [offlineReady, setOfflineReady],
@@ -17,14 +19,40 @@ export function PWAUpdater() {
   } = useRegisterSW({
     onRegistered(r) {
       console.log("SW Registered:", r);
+      
+      // AUTOMATIC UPDATE CHECK: Check for updates every 60 seconds for installed apps
+      if (isStandalone) {
+        updateCheckIntervalRef.current = setInterval(() => {
+          if (r) {
+            r.update().catch(err => console.log("Update check error:", err));
+          }
+        }, 60000); // Check every 60 seconds
+      }
     },
     onRegisterError(error) {
       console.log("SW registration error", error);
     },
   });
 
+  // AUTOMATIC RELOAD: When update is detected, automatically reload after 5 seconds
   useEffect(() => {
-    if (needRefresh) {
+    if (needRefresh && isStandalone) {
+      // For installed apps, show a notification and auto-reload
+      toast({
+        title: "✨ Atualização disponível",
+        description: "Recarregando a versão mais recente...",
+        duration: 5000,
+      });
+
+      // Auto-reload after 5 seconds for seamless update
+      const reloadTimer = setTimeout(() => {
+        updateServiceWorker(true);
+        window.location.reload();
+      }, 5000);
+
+      return () => clearTimeout(reloadTimer);
+    } else if (needRefresh && !isStandalone) {
+      // For web users, show a button to update manually
       toast({
         title: "Nova versão disponível",
         description: "Clique em atualizar para carregar as melhorias.",
@@ -44,18 +72,19 @@ export function PWAUpdater() {
         duration: Infinity,
       });
     }
-  }, [needRefresh, updateServiceWorker, toast]);
+  }, [needRefresh, updateServiceWorker, toast, isStandalone]);
 
   useEffect(() => {
     // Check if it's iOS
     const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
     setIsIOS(isIOSDevice);
 
-    // Check if app is already installed
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+    // Check if app is already installed (standalone mode)
+    const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+    setIsStandalone(isStandaloneMode);
 
-    if (!isStandalone) {
-      // Check session/time rules: Problem 4 - Step 159-163
+    if (!isStandaloneMode) {
+      // Check session/time rules: Show install banner for web users
       const firstSessionTime = localStorage.getItem("mnl_first_session");
       const now = Date.now();
       
@@ -76,7 +105,13 @@ export function PWAUpdater() {
     };
 
     window.addEventListener("beforeinstallprompt", handler);
-    return () => window.removeEventListener("beforeinstallprompt", handler);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handler);
+      // Cleanup update interval
+      if (updateCheckIntervalRef.current) {
+        clearInterval(updateCheckIntervalRef.current);
+      }
+    };
   }, []);
 
   const handleInstallClick = async () => {
@@ -86,6 +121,11 @@ export function PWAUpdater() {
     if (outcome === "accepted") {
       setInstallPrompt(null);
       setShowInstallBanner(false);
+      // Show success message
+      toast({
+        title: "App instalado com sucesso! 🎉",
+        description: "Agora você receberá atualizações automaticamente.",
+      });
     }
   };
 
@@ -102,7 +142,7 @@ export function PWAUpdater() {
             <div>
               <h3 className="font-bold text-sm">Instale o aplicativo</h3>
               <p className="text-xs text-muted-foreground">
-                Acesse mais rápido e use como um app nativo.
+                Acesse mais rápido e receba atualizações automáticas.
               </p>
             </div>
           </div>
