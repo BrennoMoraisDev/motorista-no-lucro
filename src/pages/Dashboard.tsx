@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Star, Clock, CheckCircle, AlertTriangle, Play, Pause, Square,
   DollarSign, TrendingUp, Timer, BarChart3, FileText, Loader2, Target,
-  ArrowUp, ArrowDown, Minus,
+  ArrowUp, ArrowDown, Minus, Crown,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
