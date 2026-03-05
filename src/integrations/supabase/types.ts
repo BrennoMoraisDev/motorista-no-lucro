@@ -118,6 +118,7 @@ export type Database = {
       kiwify_events: {
         Row: {
           created_at: string | null
+          email: string | null
           error_log: string | null
           event_id: string
           event_type: string
@@ -128,6 +129,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          email?: string | null
           error_log?: string | null
           event_id: string
           event_type: string
@@ -138,6 +140,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          email?: string | null
           error_log?: string | null
           event_id?: string
           event_type?: string
