@@ -1,0 +1,1 @@
+ALTER TABLE public.kiwify_events ADD COLUMN IF NOT EXISTS email text;
