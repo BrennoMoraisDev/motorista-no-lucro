@@ -97,14 +97,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const hasAccess = (() => {
     if (!profile) return false;
     if (isAdmin) return true;
-    const status = profile.status_assinatura;
     const expDate = profile.data_expiracao ? new Date(profile.data_expiracao) : null;
     const now = new Date();
-    return (
-      (status === "trial" && !!expDate && expDate > now) ||
-      (status === "active" && !!expDate && expDate > now) ||
-      (status === "canceled" && !!expDate && expDate > now)
-    );
+    // Access granted if expiration date is in the future, regardless of status
+    // This ensures canceled users keep access until their paid period ends
+    if (expDate && expDate > now) return true;
+    // Admin email without expiration = lifetime access (handled above)
+    return false;
   })();
 
   // Read-only: expired but not blocked — can view data but not write

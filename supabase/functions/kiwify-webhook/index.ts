@@ -13,104 +13,83 @@ function json(data: unknown, status = 200) {
   });
 }
 
-/** Extract customer email from various Kiwify payload formats */
 function extractEmail(payload: Record<string, unknown>): string | null {
-  // Kiwify uses "Customer" (capital C) in their standard payload
   const customer = (payload.Customer || payload.customer) as Record<string, unknown> | undefined;
   if (customer?.email) return String(customer.email).toLowerCase().trim();
-
-  // Fallback: buyer object
   const buyer = payload.buyer as Record<string, unknown> | undefined;
   if (buyer?.email) return String(buyer.email).toLowerCase().trim();
-
-  // Fallback: top-level email
   if (payload.email) return String(payload.email).toLowerCase().trim();
-
-  // Fallback: nested in Subscription
   const subscription = (payload.Subscription || payload.subscription) as Record<string, unknown> | undefined;
   if (subscription?.customer) {
     const subCustomer = subscription.customer as Record<string, unknown>;
     if (subCustomer?.email) return String(subCustomer.email).toLowerCase().trim();
   }
-
   return null;
 }
 
-/** Extract event type from Kiwify payload */
 function extractEventType(payload: Record<string, unknown>): string {
-  // Kiwify sends order_status as the primary indicator
   return String(
-    payload.order_status ||
-    payload.event_type ||
-    payload.type ||
-    payload.webhook_event_type ||
-    "unknown"
+    payload.order_status || payload.event_type || payload.type || payload.webhook_event_type || "unknown"
   ).toLowerCase();
 }
 
-/** Extract a unique event ID for idempotency */
 function extractEventId(payload: Record<string, unknown>): string {
   return String(
-    payload.order_id ||
-    payload.transaction_id ||
-    payload.subscription_id ||
-    payload.event_id ||
+    payload.order_id || payload.transaction_id || payload.subscription_id || payload.event_id ||
     `evt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
   );
 }
 
-/** Determine the action based on event type */
-function classifyEvent(eventType: string): "activate" | "cancel" | "revoke" | "ignore" {
+/** Extract a timestamp from the payload to determine event chronological order */
+function extractEventTimestamp(payload: Record<string, unknown>): Date {
+  // Try various Kiwify timestamp fields
+  const candidates = [
+    payload.approved_date,
+    payload.updated_at,
+    payload.created_at,
+    payload.sale_date,
+    (payload.Subscription as Record<string, unknown>)?.updated_at,
+    (payload.Subscription as Record<string, unknown>)?.created_at,
+  ];
+  for (const c of candidates) {
+    if (c) {
+      const d = new Date(String(c));
+      if (!isNaN(d.getTime())) return d;
+    }
+  }
+  return new Date(); // fallback to now
+}
+
+type Action = "activate" | "cancel" | "revoke" | "ignore";
+
+function classifyEvent(eventType: string): Action {
   if (
-    eventType.includes("paid") ||
-    eventType.includes("approved") ||
-    eventType.includes("compra_aprovada") ||
-    eventType.includes("subscription_purchased") ||
-    eventType.includes("renewed") ||
-    eventType.includes("assinatura_renovada") ||
+    eventType.includes("paid") || eventType.includes("approved") ||
+    eventType.includes("compra_aprovada") || eventType.includes("subscription_purchased") ||
+    eventType.includes("renewed") || eventType.includes("assinatura_renovada") ||
     eventType === "order_approved"
-  ) {
-    return "activate";
-  }
+  ) return "activate";
 
   if (
-    eventType.includes("canceled") ||
-    eventType.includes("assinatura_cancelada") ||
+    eventType.includes("canceled") || eventType.includes("assinatura_cancelada") ||
     eventType === "subscription_canceled"
-  ) {
-    return "cancel";
-  }
+  ) return "cancel";
 
   if (
-    eventType.includes("refund") ||
-    eventType.includes("reembolso") ||
-    eventType.includes("chargeback") ||
-    eventType === "order_refunded"
-  ) {
-    return "revoke";
-  }
+    eventType.includes("refund") || eventType.includes("reembolso") ||
+    eventType.includes("chargeback") || eventType === "order_refunded"
+  ) return "revoke";
 
   return "ignore";
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  // Health check
-  if (req.method === "GET") {
-    return json({ status: "ok" });
-  }
-
-  if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405, headers: corsHeaders });
-  }
-
-  let rawBody: string | null = null;
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "GET") return json({ status: "ok" });
+  if (req.method !== "POST") return new Response("Method not allowed", { status: 405, headers: corsHeaders });
 
   try {
-    // Validate webhook token
+    // Validate token
     const url = new URL(req.url);
     const queryToken = url.searchParams.get("token") || "";
     const customTokenHeader = req.headers.get("x-webhook-token") || "";
@@ -119,204 +98,133 @@ Deno.serve(async (req) => {
     const expectedToken = Deno.env.get("KIWIFY_WEBHOOK_TOKEN");
 
     if (!expectedToken || token !== expectedToken) {
-      console.error("Invalid webhook token received");
+      console.error("Invalid webhook token");
       return json({ error: "Unauthorized" }, 401);
     }
 
-    // Read body
-    rawBody = await req.text();
+    const rawBody = await req.text();
     console.log("Kiwify raw payload:", rawBody);
 
     let payload: Record<string, unknown>;
-    try {
-      payload = JSON.parse(rawBody);
-    } catch {
-      console.error("Failed to parse JSON payload");
+    try { payload = JSON.parse(rawBody); } catch {
+      console.error("Invalid JSON");
       return json({ error: "Invalid JSON" }, 400);
     }
 
-    // Extract fields
     const customerEmail = extractEmail(payload);
     const eventType = extractEventType(payload);
     const eventId = extractEventId(payload);
+    const eventTimestamp = extractEventTimestamp(payload);
 
     console.log("Evento recebido:", eventType);
     console.log("Email:", customerEmail);
     console.log("Event ID:", eventId);
+    console.log("Event timestamp:", eventTimestamp.toISOString());
 
-    // Create service role client
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    // ALWAYS save the event first, before any processing
-    const { data: existingEvent } = await supabaseAdmin
-      .from("kiwify_events")
-      .select("id, processed")
-      .eq("event_id", eventId)
-      .maybeSingle();
+    // ── Always save event first ──
+    const { data: existingEvent } = await db
+      .from("kiwify_events").select("id, processed").eq("event_id", eventId).maybeSingle();
 
     if (existingEvent?.processed) {
       console.log(`Event ${eventId} already processed, skipping`);
       return json({ status: "already_processed" });
     }
 
-    // Insert event if new
     if (!existingEvent) {
-      const { error: insertError } = await supabaseAdmin.from("kiwify_events").insert({
-        event_id: eventId,
-        event_type: eventType,
-        email: customerEmail,
-        payload,
-        processed: false,
+      const { error: insertErr } = await db.from("kiwify_events").insert({
+        event_id: eventId, event_type: eventType, email: customerEmail, payload, processed: false,
       });
-      if (insertError) {
-        console.error("Failed to insert event:", insertError);
-      }
-    } else {
-      // Update email if missing
-      if (customerEmail) {
-        await supabaseAdmin.from("kiwify_events")
-          .update({ email: customerEmail })
-          .eq("id", existingEvent.id);
-      }
+      if (insertErr) console.error("Failed to insert event:", insertErr);
     }
 
-    // Check email
     if (!customerEmail) {
-      const errorMsg = "No customer email found in payload";
-      console.error(errorMsg);
-      await supabaseAdmin
-        .from("kiwify_events")
-        .update({ processed: true, processed_at: new Date().toISOString(), error_log: errorMsg })
-        .eq("event_id", eventId);
-      // Return 200 so Kiwify doesn't retry
-      return json({ status: "error", message: errorMsg });
+      const msg = "No customer email found in payload";
+      console.error(msg);
+      await db.from("kiwify_events").update({ processed: true, processed_at: new Date().toISOString(), error_log: msg }).eq("event_id", eventId);
+      return json({ status: "error", message: msg });
     }
 
-    // Classify event
     const action = classifyEvent(eventType);
-    console.log("Action classified:", action);
+    console.log("Action:", action);
 
     if (action === "ignore") {
-      console.log(`Unknown/ignored event type: ${eventType}`);
-      await supabaseAdmin
-        .from("kiwify_events")
-        .update({ processed: true, processed_at: new Date().toISOString(), error_log: `Ignored event type: ${eventType}` })
-        .eq("event_id", eventId);
+      await db.from("kiwify_events").update({ processed: true, processed_at: new Date().toISOString(), error_log: `Ignored: ${eventType}` }).eq("event_id", eventId);
       return json({ status: "ignored" });
     }
 
-    // Find user by email
-    const { data: profile } = await supabaseAdmin
-      .from("profiles")
-      .select("user_id")
-      .eq("email", customerEmail)
-      .maybeSingle();
+    // Find user
+    const { data: profile } = await db.from("profiles").select("user_id, data_expiracao, status_assinatura, plano").eq("email", customerEmail).maybeSingle();
+    const foundProfile = profile || (await db.from("profiles").select("user_id, data_expiracao, status_assinatura, plano").ilike("email", customerEmail).maybeSingle()).data;
 
-    if (!profile) {
-      // Try case-insensitive search
-      const { data: profileCI } = await supabaseAdmin
-        .from("profiles")
-        .select("user_id")
-        .ilike("email", customerEmail)
-        .maybeSingle();
-
-      if (!profileCI) {
-        const errorMsg = `No user found for email: ${customerEmail}`;
-        console.error(errorMsg);
-        await supabaseAdmin
-          .from("kiwify_events")
-          .update({ processed: true, processed_at: new Date().toISOString(), error_log: errorMsg })
-          .eq("event_id", eventId);
-        return json({ status: "error", message: "User not found" });
-      }
-
-      // Use case-insensitive match
-      return await processAction(supabaseAdmin, action, profileCI.user_id, eventId, customerEmail);
+    if (!foundProfile) {
+      const msg = `No user found for email: ${customerEmail}`;
+      console.error(msg);
+      await db.from("kiwify_events").update({ processed: true, processed_at: new Date().toISOString(), error_log: msg }).eq("event_id", eventId);
+      return json({ status: "error", message: "User not found" });
     }
 
-    return await processAction(supabaseAdmin, action, profile.user_id, eventId, customerEmail);
+    // ── ANTI OUT-OF-ORDER PROTECTION ──
+    // Check if there's a MORE RECENT activation event already processed for this user
+    // If so, skip cancel/revoke events that are older
+    if (action === "cancel" || action === "revoke") {
+      const { data: latestActivation } = await db
+        .from("kiwify_events")
+        .select("created_at")
+        .eq("email", customerEmail)
+        .eq("processed", true)
+        .or("event_type.ilike.%paid%,event_type.ilike.%approved%,event_type.ilike.%renewed%,event_type.ilike.%purchased%")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (latestActivation) {
+        const latestActivationTime = new Date(latestActivation.created_at);
+        if (eventTimestamp < latestActivationTime) {
+          const msg = `Skipped stale ${action} event (timestamp ${eventTimestamp.toISOString()} < latest activation ${latestActivationTime.toISOString()})`;
+          console.log(msg);
+          await db.from("kiwify_events").update({ processed: true, processed_at: new Date().toISOString(), error_log: msg }).eq("event_id", eventId);
+          return json({ status: "skipped_stale", message: msg });
+        }
+      }
+    }
+
+    // ── Process action ──
+    const now = new Date();
+
+    if (action === "activate") {
+      // If user already has an active subscription with future expiration, extend from that date
+      const currentExp = foundProfile.data_expiracao ? new Date(foundProfile.data_expiracao) : null;
+      const baseDate = (currentExp && currentExp > now && foundProfile.status_assinatura === "active") ? currentExp : now;
+      const newExpiration = new Date(baseDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+      await db.from("profiles").update({
+        plano: "premium", status_assinatura: "active", data_expiracao: newExpiration.toISOString(),
+      }).eq("user_id", foundProfile.user_id);
+
+      await db.from("subscriptions").upsert({
+        user_id: foundProfile.user_id, kiwify_transaction_id: eventId, status: "active", plan_type: "premium",
+        current_period_start: now.toISOString(), current_period_end: newExpiration.toISOString(), updated_at: now.toISOString(),
+      }, { onConflict: "user_id" });
+
+      console.log(`Premium ativado para: ${customerEmail} (expira: ${newExpiration.toISOString()})`);
+    } else if (action === "cancel") {
+      // Mark as canceled but DON'T remove expiration — user keeps access until period ends
+      await db.from("profiles").update({ status_assinatura: "canceled" }).eq("user_id", foundProfile.user_id);
+      await db.from("subscriptions").update({ status: "canceled", updated_at: now.toISOString() }).eq("user_id", foundProfile.user_id);
+      console.log(`Assinatura cancelada para: ${customerEmail} (acesso mantido até expiração)`);
+    } else if (action === "revoke") {
+      // Refund/chargeback: immediate revocation
+      await db.from("profiles").update({ plano: "free", status_assinatura: "canceled", data_expiracao: now.toISOString() }).eq("user_id", foundProfile.user_id);
+      await db.from("subscriptions").update({ status: "expired", current_period_end: now.toISOString(), updated_at: now.toISOString() }).eq("user_id", foundProfile.user_id);
+      console.log(`Acesso revogado para: ${customerEmail} (reembolso/chargeback)`);
+    }
+
+    await db.from("kiwify_events").update({ processed: true, processed_at: now.toISOString(), error_log: null }).eq("event_id", eventId);
+    return json({ status: "ok", action });
   } catch (err) {
     console.error("Webhook error:", err);
-    // Always return 200 to avoid Kiwify retrying on server errors
     return json({ status: "error", message: "Internal server error" });
   }
 });
-
-async function processAction(
-  db: ReturnType<typeof createClient>,
-  action: "activate" | "cancel" | "revoke",
-  userId: string,
-  eventId: string,
-  email: string
-) {
-  const now = new Date();
-  const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-
-  try {
-    if (action === "activate") {
-      await db.from("profiles").update({
-        plano: "premium",
-        status_assinatura: "active",
-        data_expiracao: periodEnd.toISOString(),
-      }).eq("user_id", userId);
-
-      await db.from("subscriptions").upsert({
-        user_id: userId,
-        kiwify_transaction_id: eventId,
-        status: "active",
-        plan_type: "premium",
-        current_period_start: now.toISOString(),
-        current_period_end: periodEnd.toISOString(),
-        updated_at: now.toISOString(),
-      }, { onConflict: "user_id" });
-
-      console.log(`Premium ativado para: ${email} (user: ${userId})`);
-    } else if (action === "cancel") {
-      await db.from("profiles").update({
-        status_assinatura: "canceled",
-      }).eq("user_id", userId);
-
-      await db.from("subscriptions").update({
-        status: "canceled",
-        updated_at: now.toISOString(),
-      }).eq("user_id", userId);
-
-      console.log(`Assinatura cancelada para: ${email}`);
-    } else if (action === "revoke") {
-      await db.from("profiles").update({
-        plano: "free",
-        status_assinatura: "canceled",
-        data_expiracao: now.toISOString(),
-      }).eq("user_id", userId);
-
-      await db.from("subscriptions").update({
-        status: "expired",
-        current_period_end: now.toISOString(),
-        updated_at: now.toISOString(),
-      }).eq("user_id", userId);
-
-      console.log(`Acesso revogado para: ${email} (reembolso/chargeback)`);
-    }
-
-    // Mark as processed successfully
-    await db.from("kiwify_events").update({
-      processed: true,
-      processed_at: now.toISOString(),
-      error_log: null,
-    }).eq("event_id", eventId);
-
-    return json({ status: "ok", action });
-  } catch (err) {
-    const errorMsg = `Processing error: ${(err as Error).message}`;
-    console.error(errorMsg);
-    await db.from("kiwify_events").update({
-      processed: true,
-      processed_at: now.toISOString(),
-      error_log: errorMsg,
-    }).eq("event_id", eventId);
-    return json({ status: "error", message: errorMsg });
-  }
-}
