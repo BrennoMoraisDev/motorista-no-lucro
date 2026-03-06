@@ -4,9 +4,13 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { MapPin, Navigation, SkipForward, Pause, RefreshCw, AlertTriangle, Clock, Zap, ChevronRight } from "lucide-react";
+import { MapPin, Navigation, SkipForward, Pause, RefreshCw, AlertTriangle, Clock, Zap, ChevronRight, Settings } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 import Layout from "@/components/Layout";
 import { circuitos, Circuito, Ponto } from "@/lib/circuitos-data";
+
+const REGIOES = ['Centro', 'Zona Oeste', 'Zona Sul', 'Zona Norte', 'Zona Leste'] as const;
 
 export default function Circuitos() {
   const [userLocation, setUserLocation] = useState<GeolocationCoordinates | null>(null);
@@ -21,8 +25,25 @@ export default function Circuitos() {
   const [circuitCompleted, setCircuitCompleted] = useState(false);
   const [arrivedAtPoint, setArrivedAtPoint] = useState(false);
   const [nearbyCircuits, setNearbyCircuits] = useState<Array<{ circuito: Circuito; distance: number }>>([]);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [filteredRegions, setFilteredRegions] = useState<Set<string>>(new Set(REGIOES));
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Carregar filtros do localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('circuitos-filter');
+    if (saved) {
+      setFilteredRegions(new Set(JSON.parse(saved)));
+    } else {
+      setFilteredRegions(new Set(REGIOES));
+    }
+  }, []);
+
+  // Salvar filtros no localStorage
+  const saveFilters = (regions: Set<string>) => {
+    localStorage.setItem('circuitos-filter', JSON.stringify(Array.from(regions)));
+  };
 
   // Cálculo de distância Haversine
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -41,7 +62,9 @@ export default function Circuitos() {
   };
 
   const findClosestCircuit = useCallback((coords: GeolocationCoordinates) => {
-    const distances = circuitos.map((circuito) => ({
+    const filteredCircuitos = circuitos.filter(c => filteredRegions.has(c.regiao));
+    
+    const distances = filteredCircuitos.map((circuito) => ({
       circuito,
       distance: calculateDistance(
         coords.latitude,
@@ -52,9 +75,9 @@ export default function Circuitos() {
     }));
 
     distances.sort((a, b) => a.distance - b.distance);
-    setClosestCircuito(distances[0].circuito);
+    setClosestCircuito(distances[0]?.circuito || null);
     setNearbyCircuits(distances.slice(0, 4));
-  }, []);
+  }, [filteredRegions]);
 
   useEffect(() => {
     if ("geolocation" in navigator) {
@@ -87,11 +110,6 @@ export default function Circuitos() {
         },
         (error) => {
           console.error("Erro ao obter localização:", error);
-          toast({
-            title: "Erro de Localização",
-            description: "Não foi possível obter sua localização GPS.",
-            variant: "destructive",
-          });
         },
         { enableHighAccuracy: true }
       );
@@ -204,6 +222,20 @@ export default function Circuitos() {
     });
   };
 
+  const toggleRegion = (region: string) => {
+    const newRegions = new Set(filteredRegions);
+    if (newRegions.has(region)) {
+      newRegions.delete(region);
+    } else {
+      newRegions.add(region);
+    }
+    setFilteredRegions(newRegions);
+    saveFilters(newRegions);
+    if (userLocation) {
+      findClosestCircuit(userLocation);
+    }
+  };
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -217,47 +249,99 @@ export default function Circuitos() {
     return `${Math.round(meters)} m`;
   };
 
+  const circuitosPorRegiao = (regiao: string) => {
+    return circuitos.filter(c => c.regiao === regiao && filteredRegions.has(regiao));
+  };
+
   return (
     <Layout>
       <div className="container mx-auto p-4">
-        <div className="mb-6 flex items-center gap-2">
-          <Navigation className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold">Circuitos Inteligentes</h1>
+        <div className="mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Navigation className="h-6 w-6 text-primary" />
+            <h1 className="text-2xl font-bold">Circuitos Inteligentes</h1>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowFilterModal(true)}
+            className="rounded-xl"
+          >
+            <Settings className="h-4 w-4 mr-1" />
+            Filtrar
+          </Button>
         </div>
 
         {!isCircuitActive && !circuitCompleted && (
-          <Card className="border-primary/20 bg-primary/5 shadow-md">
+          <Card className="border-primary/20 bg-primary/5 shadow-md rounded-2xl">
             <CardHeader>
-              <CardTitle>Circuito mais próximo encontrado</CardTitle>
+              <CardTitle>Selecione um Circuito</CardTitle>
               <CardDescription>
-                Baseado na sua localização atual em São Paulo.
+                Escolha automático ou selecione manualmente
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {closestCircuito ? (
-                <div className="flex items-center justify-between rounded-2xl bg-background p-4 shadow-sm border border-border">
-                  <div>
-                    <p className="text-lg font-bold text-primary">{closestCircuito.nome}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {closestCircuito.pontos.length} pontos estratégicos
-                    </p>
-                  </div>
-                  <MapPin className="h-6 w-6 text-primary" />
-                </div>
-              ) : (
-                <div className="flex animate-pulse items-center justify-center p-8">
-                  <RefreshCw className="mr-2 h-5 w-5 animate-spin" />
-                  Buscando localização...
-                </div>
-              )}
+            <CardContent>
+              <Tabs defaultValue="automatico" className="w-full">
+                <TabsList className="mb-6 w-full grid grid-cols-2 rounded-xl">
+                  <TabsTrigger value="automatico" className="rounded-lg">Automático</TabsTrigger>
+                  <TabsTrigger value="escolher" className="rounded-lg">Escolher</TabsTrigger>
+                </TabsList>
 
-              <Button 
-                className="w-full py-6 text-lg font-bold rounded-2xl" 
-                disabled={!closestCircuito}
-                onClick={() => handleStartCircuit()}
-              >
-                INICIAR CIRCUITO
-              </Button>
+                {/* ABA AUTOMÁTICO */}
+                <TabsContent value="automatico" className="space-y-4">
+                  {closestCircuito ? (
+                    <div className="flex items-center justify-between rounded-2xl bg-background p-4 shadow-sm border border-border">
+                      <div>
+                        <p className="text-lg font-bold text-primary">{closestCircuito.nome}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {closestCircuito.pontos.length} pontos • {closestCircuito.regiao}
+                        </p>
+                      </div>
+                      <MapPin className="h-6 w-6 text-primary" />
+                    </div>
+                  ) : (
+                    <div className="flex animate-pulse items-center justify-center p-8">
+                      <RefreshCw className="mr-2 h-5 w-5 animate-spin" />
+                      Buscando localização...
+                    </div>
+                  )}
+
+                  <Button 
+                    className="w-full py-6 text-lg font-bold rounded-2xl" 
+                    disabled={!closestCircuito}
+                    onClick={() => handleStartCircuit()}
+                  >
+                    INICIAR CIRCUITO
+                  </Button>
+                </TabsContent>
+
+                {/* ABA ESCOLHER */}
+                <TabsContent value="escolher" className="space-y-4">
+                  {REGIOES.map((regiao) => {
+                    const circuitosRegiao = circuitosPorRegiao(regiao);
+                    if (circuitosRegiao.length === 0) return null;
+
+                    return (
+                      <div key={regiao} className="space-y-2">
+                        <p className="text-sm font-semibold text-muted-foreground uppercase">{regiao}</p>
+                        <div className="space-y-2">
+                          {circuitosRegiao.map((circ) => (
+                            <Button
+                              key={circ.id}
+                              variant="outline"
+                              className="w-full justify-between py-6 rounded-xl border-2 hover:bg-primary/5"
+                              onClick={() => handleStartCircuit(circ)}
+                            >
+                              <span className="font-semibold">{circ.nome}</span>
+                              <ChevronRight className="h-5 w-5" />
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
         )}
@@ -345,7 +429,7 @@ export default function Circuitos() {
                   style={{ backgroundColor: "#16C75E" }}
                   onClick={handleOpenWaze}
                 >
-                  ABRIR NO WAZE
+                  🧭 ABRIR NO WAZE
                 </Button>
 
                 {/* Botões Secundários */}
@@ -356,24 +440,21 @@ export default function Circuitos() {
                       className="py-6 font-bold rounded-2xl border-2"
                       onClick={handleNextPoint}
                     >
-                      <SkipForward className="mr-1 h-4 w-4" />
-                      PRÓXIMO
+                      ⏭ PRÓXIMO
                     </Button>
                     <Button 
                       variant="secondary"
                       className="py-6 font-bold rounded-2xl"
                       onClick={handlePauseForRide}
                     >
-                      <Pause className="mr-1 h-4 w-4" />
-                      CORRIDA
+                      🚕 CORRIDA
                     </Button>
                     <Button 
                       variant="outline"
                       className="py-6 font-bold rounded-2xl border-2"
                       onClick={() => setShowCircuitList(true)}
                     >
-                      <RefreshCw className="mr-1 h-4 w-4" />
-                      TROCAR
+                      🔄 TROCAR
                     </Button>
                   </div>
                 ) : (
@@ -412,38 +493,63 @@ export default function Circuitos() {
           </div>
         )}
 
-        {/* Modal de Circuitos Próximos */}
+        {/* Modal de Seleção de Circuitos */}
         {showCircuitList && (
           <div className="fixed inset-0 bg-black/50 flex items-end z-50">
             <div className="w-full bg-background rounded-t-3xl p-6 shadow-2xl max-h-[80vh] overflow-y-auto">
-              <h2 className="text-2xl font-bold mb-4">Circuitos Próximos</h2>
-              <div className="space-y-3">
-                {nearbyCircuits.map((item, idx) => (
-                  <div 
-                    key={item.circuito.id}
-                    className="flex items-center justify-between p-4 rounded-2xl border border-border hover:bg-muted/50 transition-all"
-                  >
-                    <div>
-                      <p className="font-bold text-lg">{idx + 1}. {item.circuito.nome}</p>
-                      <p className="text-sm text-muted-foreground">{formatDistance(item.distance)}</p>
+              <h2 className="text-2xl font-bold mb-4">Trocar Circuito</h2>
+              <Tabs defaultValue="automatico" className="w-full">
+                <TabsList className="mb-6 w-full grid grid-cols-2 rounded-xl">
+                  <TabsTrigger value="automatico" className="rounded-lg">Próximos</TabsTrigger>
+                  <TabsTrigger value="escolher" className="rounded-lg">Todos</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="automatico" className="space-y-3">
+                  {nearbyCircuits.map((item, idx) => (
+                    <div 
+                      key={item.circuito.id}
+                      className="flex items-center justify-between p-4 rounded-2xl border border-border hover:bg-muted/50 transition-all cursor-pointer"
+                      onClick={() => handleStartCircuit(item.circuito)}
+                    >
+                      <div>
+                        <p className="font-bold text-lg">{idx + 1}. {item.circuito.nome}</p>
+                        <p className="text-sm text-muted-foreground">{formatDistance(item.distance)} • {item.circuito.regiao}</p>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-muted-foreground" />
                     </div>
-                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                ))}
-              </div>
-              <Button 
-                className="w-full mt-6 py-6 text-lg font-bold rounded-2xl bg-primary hover:bg-primary/90"
-                onClick={() => {
-                  if (nearbyCircuits[0]) {
-                    handleStartCircuit(nearbyCircuits[0].circuito);
-                  }
-                }}
-              >
-                INICIAR CIRCUITO
-              </Button>
+                  ))}
+                </TabsContent>
+
+                <TabsContent value="escolher" className="space-y-4">
+                  {REGIOES.map((regiao) => {
+                    const circuitosRegiao = circuitosPorRegiao(regiao);
+                    if (circuitosRegiao.length === 0) return null;
+
+                    return (
+                      <div key={regiao} className="space-y-2">
+                        <p className="text-sm font-semibold text-muted-foreground uppercase">{regiao}</p>
+                        <div className="space-y-2">
+                          {circuitosRegiao.map((circ) => (
+                            <Button
+                              key={circ.id}
+                              variant="outline"
+                              className="w-full justify-between py-6 rounded-xl border-2 hover:bg-primary/5"
+                              onClick={() => handleStartCircuit(circ)}
+                            >
+                              <span className="font-semibold">{circ.nome}</span>
+                              <ChevronRight className="h-5 w-5" />
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </TabsContent>
+              </Tabs>
+
               <Button 
                 variant="ghost"
-                className="w-full mt-2 py-6 font-semibold rounded-2xl"
+                className="w-full mt-4 py-6 font-semibold rounded-2xl"
                 onClick={() => setShowCircuitList(false)}
               >
                 CANCELAR
@@ -502,9 +608,35 @@ export default function Circuitos() {
             Dica de Especialista
           </h3>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Esses circuitos foram desenhados para manter você em movimento em áreas de alta demanda como hospitais, metrôs e polos comerciais. Se em 15 minutos não tocar corrida, considere trocar de circuito.
+            Se nenhuma corrida tocar em até 15 minutos, recomendamos mudar para outra região de maior demanda.
           </p>
         </div>
+
+        {/* Modal de Filtro */}
+        {showFilterModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-end z-50">
+            <div className="w-full bg-background rounded-t-3xl p-6 shadow-2xl">
+              <h2 className="text-2xl font-bold mb-6">⚙️ Filtrar Circuitos</h2>
+              <div className="space-y-4 mb-6">
+                {REGIOES.map((regiao) => (
+                  <div key={regiao} className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 cursor-pointer" onClick={() => toggleRegion(regiao)}>
+                    <Checkbox 
+                      checked={filteredRegions.has(regiao)}
+                      onCheckedChange={() => toggleRegion(regiao)}
+                    />
+                    <label className="text-lg font-semibold cursor-pointer flex-1">{regiao}</label>
+                  </div>
+                ))}
+              </div>
+              <Button 
+                className="w-full py-6 text-lg font-bold rounded-2xl"
+                onClick={() => setShowFilterModal(false)}
+              >
+                PRONTO
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );

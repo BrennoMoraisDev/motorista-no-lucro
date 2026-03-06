@@ -8,6 +8,7 @@ export interface Ponto {
 export interface Circuito {
   id: number;
   nome: string;
+  regiao: 'Centro' | 'Zona Oeste' | 'Zona Sul' | 'Zona Norte' | 'Zona Leste';
   centro: {
     lat: number;
     lng: number;
@@ -20,6 +21,7 @@ export const circuitos: Circuito[] = [
   {
     id: 1,
     nome: "Liberdade",
+    regiao: "Centro",
     centro: { lat: -23.5556, lng: -46.6358 },
     tempo_max_sem_corrida: 15,
     pontos: [
@@ -32,6 +34,7 @@ export const circuitos: Circuito[] = [
   {
     id: 2,
     nome: "Sé",
+    regiao: "Centro",
     centro: { lat: -23.5505, lng: -46.6333 },
     tempo_max_sem_corrida: 15,
     pontos: [
@@ -44,6 +47,7 @@ export const circuitos: Circuito[] = [
   {
     id: 3,
     nome: "República",
+    regiao: "Centro",
     centro: { lat: -23.5456, lng: -46.6425 },
     tempo_max_sem_corrida: 15,
     pontos: [
@@ -56,6 +60,7 @@ export const circuitos: Circuito[] = [
   {
     id: 4,
     nome: "Frei Caneca",
+    regiao: "Centro",
     centro: { lat: -23.5558, lng: -46.6523 },
     tempo_max_sem_corrida: 15,
     pontos: [
@@ -68,6 +73,7 @@ export const circuitos: Circuito[] = [
   {
     id: 5,
     nome: "Paulista",
+    regiao: "Centro",
     centro: { lat: -23.5614, lng: -46.6559 },
     tempo_max_sem_corrida: 15,
     pontos: [
@@ -80,6 +86,7 @@ export const circuitos: Circuito[] = [
   {
     id: 6,
     nome: "Hospital das Clínicas",
+    regiao: "Centro",
     centro: { lat: -23.5571, lng: -46.6683 },
     tempo_max_sem_corrida: 15,
     pontos: [
@@ -92,6 +99,7 @@ export const circuitos: Circuito[] = [
   {
     id: 7,
     nome: "Higienópolis",
+    regiao: "Centro",
     centro: { lat: -23.5425, lng: -46.6576 },
     tempo_max_sem_corrida: 15,
     pontos: [
@@ -104,6 +112,7 @@ export const circuitos: Circuito[] = [
   {
     id: 8,
     nome: "Barra Funda",
+    regiao: "Zona Oeste",
     centro: { lat: -23.5255, lng: -46.6677 },
     tempo_max_sem_corrida: 15,
     pontos: [
@@ -116,6 +125,7 @@ export const circuitos: Circuito[] = [
   {
     id: 9,
     nome: "Pinheiros",
+    regiao: "Zona Oeste",
     centro: { lat: -23.5673, lng: -46.6931 },
     tempo_max_sem_corrida: 15,
     pontos: [
@@ -128,6 +138,7 @@ export const circuitos: Circuito[] = [
   {
     id: 10,
     nome: "Faria Lima",
+    regiao: "Zona Oeste",
     centro: { lat: -23.5753, lng: -46.6891 },
     tempo_max_sem_corrida: 15,
     pontos: [
@@ -140,6 +151,7 @@ export const circuitos: Circuito[] = [
   {
     id: 11,
     nome: "Berrini",
+    regiao: "Zona Sul",
     centro: { lat: -23.6090, lng: -46.6934 },
     tempo_max_sem_corrida: 15,
     pontos: [
@@ -152,6 +164,7 @@ export const circuitos: Circuito[] = [
   {
     id: 12,
     nome: "Vila Olímpia",
+    regiao: "Zona Sul",
     centro: { lat: -23.5950, lng: -46.6845 },
     tempo_max_sem_corrida: 15,
     pontos: [
@@ -164,6 +177,7 @@ export const circuitos: Circuito[] = [
   {
     id: 13,
     nome: "Itaim Bibi",
+    regiao: "Zona Sul",
     centro: { lat: -23.5845, lng: -46.6755 },
     tempo_max_sem_corrida: 15,
     pontos: [
@@ -176,6 +190,7 @@ export const circuitos: Circuito[] = [
   {
     id: 14,
     nome: "Moema",
+    regiao: "Zona Sul",
     centro: { lat: -23.6034, lng: -46.6635 },
     tempo_max_sem_corrida: 15,
     pontos: [
@@ -188,6 +203,7 @@ export const circuitos: Circuito[] = [
   {
     id: 15,
     nome: "Paraíso",
+    regiao: "Centro",
     centro: { lat: -23.5740, lng: -46.6407 },
     tempo_max_sem_corrida: 15,
     pontos: [
@@ -200,6 +216,7 @@ export const circuitos: Circuito[] = [
   {
     id: 16,
     nome: "Aclimação",
+    regiao: "Centro",
     centro: { lat: -23.5666, lng: -46.6292 },
     tempo_max_sem_corrida: 15,
     pontos: [
@@ -212,6 +229,7 @@ export const circuitos: Circuito[] = [
   {
     id: 17,
     nome: "Bela Vista",
+    regiao: "Centro",
     centro: { lat: -23.5550, lng: -46.6475 },
     tempo_max_sem_corrida: 15,
     pontos: [
@@ -224,6 +242,7 @@ export const circuitos: Circuito[] = [
   {
     id: 18,
     nome: "Consolação",
+    regiao: "Centro",
     centro: { lat: -23.5535, lng: -46.6570 },
     tempo_max_sem_corrida: 15,
     pontos: [
@@ -236,6 +255,7 @@ export const circuitos: Circuito[] = [
   {
     id: 19,
     nome: "Jardins",
+    regiao: "Centro",
     centro: { lat: -23.5700, lng: -46.6600 },
     tempo_max_sem_corrida: 15,
     pontos: [
@@ -248,6 +268,7 @@ export const circuitos: Circuito[] = [
   {
     id: 20,
     nome: "Perdizes",
+    regiao: "Zona Norte",
     centro: { lat: -23.5370, lng: -46.6730 },
     tempo_max_sem_corrida: 15,
     pontos: [
@@ -260,6 +281,7 @@ export const circuitos: Circuito[] = [
   {
     id: 21,
     nome: "Tatuapé",
+    regiao: "Zona Leste",
     centro: { lat: -23.5409, lng: -46.5764 },
     tempo_max_sem_corrida: 15,
     pontos: [
@@ -272,6 +294,7 @@ export const circuitos: Circuito[] = [
   {
     id: 22,
     nome: "Santana",
+    regiao: "Zona Norte",
     centro: { lat: -23.5035, lng: -46.6250 },
     tempo_max_sem_corrida: 15,
     pontos: [
@@ -284,6 +307,7 @@ export const circuitos: Circuito[] = [
   {
     id: 23,
     nome: "Brooklin",
+    regiao: "Zona Sul",
     centro: { lat: -23.6175, lng: -46.6880 },
     tempo_max_sem_corrida: 15,
     pontos: [
@@ -296,6 +320,7 @@ export const circuitos: Circuito[] = [
   {
     id: 24,
     nome: "Campo Belo",
+    regiao: "Zona Sul",
     centro: { lat: -23.6265, lng: -46.6745 },
     tempo_max_sem_corrida: 15,
     pontos: [
@@ -308,6 +333,7 @@ export const circuitos: Circuito[] = [
   {
     id: 25,
     nome: "Saúde",
+    regiao: "Zona Sul",
     centro: { lat: -23.6125, lng: -46.6360 },
     tempo_max_sem_corrida: 15,
     pontos: [
@@ -320,6 +346,7 @@ export const circuitos: Circuito[] = [
   {
     id: 26,
     nome: "Vila Mariana",
+    regiao: "Zona Sul",
     centro: { lat: -23.5880, lng: -46.6340 },
     tempo_max_sem_corrida: 15,
     pontos: [
@@ -332,6 +359,7 @@ export const circuitos: Circuito[] = [
   {
     id: 27,
     nome: "Ibirapuera",
+    regiao: "Zona Sul",
     centro: { lat: -23.5870, lng: -46.6570 },
     tempo_max_sem_corrida: 15,
     pontos: [
@@ -344,6 +372,7 @@ export const circuitos: Circuito[] = [
   {
     id: 28,
     nome: "Cambuci",
+    regiao: "Centro",
     centro: { lat: -23.5675, lng: -46.6205 },
     tempo_max_sem_corrida: 15,
     pontos: [
@@ -356,6 +385,7 @@ export const circuitos: Circuito[] = [
   {
     id: 29,
     nome: "Santa Cecília",
+    regiao: "Centro",
     centro: { lat: -23.5360, lng: -46.6480 },
     tempo_max_sem_corrida: 15,
     pontos: [
@@ -368,6 +398,7 @@ export const circuitos: Circuito[] = [
   {
     id: 30,
     nome: "Anhangabaú",
+    regiao: "Centro",
     centro: { lat: -23.5489, lng: -46.6388 },
     tempo_max_sem_corrida: 15,
     pontos: [

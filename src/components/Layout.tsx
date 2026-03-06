@@ -109,35 +109,38 @@ export default function Layout({ children }: LayoutProps) {
                       <SheetTitle>Menu</SheetTitle>
                     </SheetHeader>
                     <nav className="flex flex-col gap-2 mt-4">
-                      <Button variant="ghost" className="justify-start" onClick={() => handleMobileNav("/dashboard")}>
-                        <Home className="mr-2 h-4 w-4" />
-                        Início
-                      </Button>
-                      <Button variant="ghost" className="justify-start" onClick={() => handleMobileNav("/relatorios")}>
-                        <BarChart3 className="mr-2 h-4 w-4" />
-                        Relatórios
-                      </Button>
-                      <Button variant="ghost" className="justify-start" onClick={() => handleMobileNav("/circuitos")}>
-                        <Navigation className="mr-2 h-4 w-4" />
-                        Circuitos
-                      </Button>
-                      <Button variant="ghost" className="justify-start" onClick={() => handleMobileNav("/perfil")}>
+                      <Button variant="ghost" className="justify-start py-6" onClick={() => handleMobileNav("/perfil")}>
                         <User className="mr-2 h-4 w-4" />
                         Perfil
                       </Button>
-                      <Button variant="ghost" className="justify-start" onClick={() => handleMobileNav("/configuracoes")}>
+                      <Button variant="ghost" className="justify-start py-6" onClick={() => handleMobileNav("/configuracoes")}>
                         <Settings className="mr-2 h-4 w-4" />
                         Planejamento Financeiro
                       </Button>
+                      <Button variant="ghost" className="justify-start py-6">
+                        📱 Suporte
+                      </Button>
+                      <Button variant="ghost" className="justify-start py-6">
+                        ⭐ Avaliar App
+                      </Button>
+                      <Button variant="ghost" className="justify-start py-6">
+                        🔒 Política de Privacidade
+                      </Button>
                       {isAdmin && (
-                        <Button variant="ghost" className="justify-start" onClick={() => handleMobileNav("/admin")}>
-                          <Shield className="mr-2 h-4 w-4" />
-                          Admin
-                        </Button>
+                        <>
+                          <div className="my-2 border-t border-border" />
+                          <Button variant="ghost" className="justify-start py-6" onClick={() => handleMobileNav("/admin")}>
+                            <Shield className="mr-2 h-4 w-4" />
+                            Painel Admin
+                          </Button>
+                        </>
                       )}
-                      <Button variant="ghost" className="justify-start text-destructive" onClick={handleLogout}>
+                      <div className="my-2 border-t border-border" />
+                      <Button variant="ghost" className="justify-start py-6 text-slate-600 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300" onClick={handleLogout}>
                         <LogOut className="mr-2 h-4 w-4" />
                         Sair
+                      </Button>
+                    </nav>
                       </Button>
                     </nav>
                   </SheetContent>

@@ -41,7 +41,7 @@ export default function BottomNavigation() {
           onClick={() => navigate("/dashboard")}
           className={`flex flex-col items-center gap-1 h-auto py-2 px-3 rounded-xl transition-all ${
             isActive("/dashboard")
-              ? "bg-primary/10 text-primary"
+              ? "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300"
               : "text-muted-foreground hover:text-foreground hover:bg-muted"
           }`}
         >
@@ -56,7 +56,7 @@ export default function BottomNavigation() {
           onClick={() => navigate("/relatorios")}
           className={`flex flex-col items-center gap-1 h-auto py-2 px-3 rounded-xl transition-all ${
             isActive("/relatorios")
-              ? "bg-primary/10 text-primary"
+              ? "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300"
               : "text-muted-foreground hover:text-foreground hover:bg-muted"
           }`}
         >
@@ -71,7 +71,7 @@ export default function BottomNavigation() {
           onClick={() => navigate("/circuitos")}
           className={`flex flex-col items-center gap-1 h-auto py-2 px-3 rounded-xl transition-all ${
             isActive("/circuitos")
-              ? "bg-primary/10 text-primary"
+              ? "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300"
               : "text-muted-foreground hover:text-foreground hover:bg-muted"
           }`}
         >
@@ -129,10 +129,10 @@ export default function BottomNavigation() {
               <div className="my-2 border-t border-border" />
               <Button
                 variant="ghost"
-                className="justify-start py-6 text-base font-semibold rounded-xl text-destructive hover:text-destructive hover:bg-destructive/10"
+                className="justify-start py-6 text-base font-semibold rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                 onClick={handleLogout}
               >
-                🚪 Sair
+                🚺 Sair
               </Button>
             </nav>
           </SheetContent>
