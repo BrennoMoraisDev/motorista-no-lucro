@@ -2,7 +2,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/logo-small.webp";
-import { LogOut, LogIn, UserPlus, User, Settings, Menu, Home, BarChart3, Shield, Navigation } from "lucide-react";
+import { LogOut, LogIn, UserPlus, User, Settings, Menu, Shield } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import BottomNavigation from "@/components/BottomNavigation";
 import { ReactNode, useState } from "react";
