@@ -141,8 +141,6 @@ export default function Layout({ children }: LayoutProps) {
                         Sair
                       </Button>
                     </nav>
-                      </Button>
-                    </nav>
                   </SheetContent>
                 </Sheet>
               </>
