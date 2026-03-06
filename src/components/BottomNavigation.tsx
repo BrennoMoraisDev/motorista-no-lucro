@@ -33,13 +33,13 @@ export default function BottomNavigation() {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border shadow-2xl z-40">
-      <div className="flex items-center justify-around px-2 py-3 max-w-2xl mx-auto">
+      <div className="flex items-center justify-around px-2 py-3 max-w-2xl mx-auto w-full">
         {/* Início */}
         <Button
           variant="ghost"
           size="sm"
           onClick={() => navigate("/dashboard")}
-          className={`flex flex-col items-center gap-1 h-auto py-2 px-3 rounded-xl transition-all ${
+          className={`flex flex-col items-center gap-1 h-auto py-2 px-3 rounded-xl transition-colors duration-200 ${
             isActive("/dashboard")
               ? "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300"
               : "text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -54,7 +54,7 @@ export default function BottomNavigation() {
           variant="ghost"
           size="sm"
           onClick={() => navigate("/relatorios")}
-          className={`flex flex-col items-center gap-1 h-auto py-2 px-3 rounded-xl transition-all ${
+          className={`flex flex-col items-center gap-1 h-auto py-2 px-3 rounded-xl transition-colors duration-200 ${
             isActive("/relatorios")
               ? "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300"
               : "text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -69,7 +69,7 @@ export default function BottomNavigation() {
           variant="ghost"
           size="sm"
           onClick={() => navigate("/circuitos")}
-          className={`flex flex-col items-center gap-1 h-auto py-2 px-3 rounded-xl transition-all ${
+          className={`flex flex-col items-center gap-1 h-auto py-2 px-3 rounded-xl transition-colors duration-200 ${
             isActive("/circuitos")
               ? "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300"
               : "text-muted-foreground hover:text-foreground hover:bg-muted"

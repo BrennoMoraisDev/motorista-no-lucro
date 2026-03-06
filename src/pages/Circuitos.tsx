@@ -263,12 +263,12 @@ export default function Circuitos() {
           </div>
           <Button
             variant="outline"
-            size="sm"
+            size="lg"
             onClick={() => setShowFilterModal(true)}
-            className="rounded-xl"
+            className="rounded-xl border-2 font-semibold py-6 px-4"
           >
-            <Settings className="h-4 w-4 mr-1" />
-            Filtrar
+            <Settings className="h-5 w-5 mr-2" />
+            ⚙️ Filtrar
           </Button>
         </div>
 
@@ -619,7 +619,7 @@ export default function Circuitos() {
               <h2 className="text-2xl font-bold mb-6">⚙️ Filtrar Circuitos</h2>
               <div className="space-y-4 mb-6">
                 {REGIOES.map((regiao) => (
-                  <div key={regiao} className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 cursor-pointer" onClick={() => toggleRegion(regiao)}>
+                  <div key={regiao} className="flex items-center gap-3 p-4 rounded-xl hover:bg-muted/50 cursor-pointer border border-border" onClick={() => toggleRegion(regiao)}>
                     <Checkbox 
                       checked={filteredRegions.has(regiao)}
                       onCheckedChange={() => toggleRegion(regiao)}
@@ -627,6 +627,21 @@ export default function Circuitos() {
                     <label className="text-lg font-semibold cursor-pointer flex-1">{regiao}</label>
                   </div>
                 ))}
+              </div>
+              <div className="flex gap-3 mb-4">
+                <Button 
+                  variant="outline"
+                  className="flex-1 py-6 text-base font-bold rounded-2xl border-2"
+                  onClick={() => {
+                    setFilteredRegions(new Set(REGIOES));
+                    saveFilters(new Set(REGIOES));
+                    if (userLocation) {
+                      findClosestCircuit(userLocation);
+                    }
+                  }}
+                >
+                  LIMPAR FILTROS
+                </Button>
               </div>
               <Button 
                 className="w-full py-6 text-lg font-bold rounded-2xl"
