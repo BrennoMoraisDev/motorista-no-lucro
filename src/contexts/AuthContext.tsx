@@ -47,7 +47,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (expiryDate < now) {
         console.log("⚠️ Plano premium expirado. Rebaixando para free.");
-        // Aqui você pode fazer um update no banco se necessário
         return { ...prof, plano: "free" };
       }
     }
@@ -65,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (error) {
         console.error("❌ Erro ao buscar perfil:", error);
+        setProfile(null);
         return;
       }
       
@@ -74,9 +74,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfile(updatedProfile);
       } else {
         console.warn("⚠️ Perfil não encontrado para este usuário");
+        setProfile(null);
       }
     } catch (err) {
       console.error("❌ Erro ao buscar perfil:", err);
+      setProfile(null);
     }
   };
 
@@ -141,24 +143,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     // Initial session fetch
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log("📋 Sessão inicial:", session?.user?.email || "Nenhuma");
-      
-      if (isInitialRecovery || (window.location.hash && window.location.hash.includes("type=recovery"))) {
-        setIsRecovering(true);
-        setSession(null);
-        setUser(null);
-        setProfile(null);
-      } else {
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          console.log("👤 Carregando perfil da sessão inicial");
-          fetchProfile(session.user.id);
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log("📋 Sessão inicial:", session?.user?.email || "Nenhuma");
+        
+        if (isInitialRecovery || (window.location.hash && window.location.hash.includes("type=recovery"))) {
+          setIsRecovering(true);
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+          setLoading(false);
+        } else {
+          setSession(session);
+          setUser(session?.user ?? null);
+          if (session?.user) {
+            console.log("👤 Carregando perfil da sessão inicial");
+            await fetchProfile(session.user.id);
+          }
+          setLoading(false);
         }
+      } catch (err) {
+        console.error("❌ Erro ao buscar sessão inicial:", err);
+        setLoading(false);
       }
-      setLoading(false);
-    });
+    })();
 
     return () => subscription.unsubscribe();
   }, [isRecovering]);
