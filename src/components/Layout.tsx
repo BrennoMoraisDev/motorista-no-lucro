@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import logo from "@/assets/logo-small.webp";
 import { LogOut, LogIn, UserPlus, User, Settings, Menu, Home, BarChart3, Shield, Navigation } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
+import BottomNavigation from "@/components/BottomNavigation";
 import { ReactNode, useState } from "react";
 import {
   Sheet,
@@ -83,7 +84,7 @@ export default function Layout({ children }: LayoutProps) {
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => navigate("/configuracoes")} className="hidden sm:inline-flex text-white/70 hover:bg-white/10 hover:text-white">
                   <Settings className="mr-1 h-4 w-4" />
-                  Configurações
+                  Planejamento
                 </Button>
                 {isAdmin && (
                   <Button variant="ghost" size="sm" onClick={() => navigate("/admin")} className="hidden sm:inline-flex text-white/70 hover:bg-white/10 hover:text-white">
@@ -126,7 +127,7 @@ export default function Layout({ children }: LayoutProps) {
                       </Button>
                       <Button variant="ghost" className="justify-start" onClick={() => handleMobileNav("/configuracoes")}>
                         <Settings className="mr-2 h-4 w-4" />
-                        Configurações
+                        Planejamento Financeiro
                       </Button>
                       {isAdmin && (
                         <Button variant="ghost" className="justify-start" onClick={() => handleMobileNav("/admin")}>
@@ -159,7 +160,9 @@ export default function Layout({ children }: LayoutProps) {
         </div>
       </header>
 
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 pb-24">{children}</main>
+      
+      {user && <BottomNavigation />}
     </div>
   );
 }

@@ -169,8 +169,11 @@ export default function Configuracoes() {
 
   return (
     <Layout>
-      <div className="container mx-auto max-w-2xl px-4 py-10">
-        <h1 className="mb-6 text-2xl font-bold text-foreground">Configurações</h1>
+      <div className="container mx-auto max-w-2xl px-4 py-10 pb-24">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-foreground">Planejamento Financeiro</h1>
+          <p className="text-sm text-muted-foreground mt-1">Defina suas metas, custos e dados do veículo</p>
+        </div>
 
         <Tabs defaultValue="metas" className="w-full">
           <TabsList className="mb-6 w-full grid grid-cols-2">

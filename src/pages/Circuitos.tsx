@@ -219,7 +219,7 @@ export default function Circuitos() {
 
   return (
     <Layout>
-      <div className="container mx-auto p-4 pb-24">
+      <div className="container mx-auto p-4">
         <div className="mb-6 flex items-center gap-2">
           <Navigation className="h-6 w-6 text-primary" />
           <h1 className="text-2xl font-bold">Circuitos Inteligentes</h1>
