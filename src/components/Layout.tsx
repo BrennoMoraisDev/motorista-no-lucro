@@ -54,18 +54,7 @@ export default function Layout({ children }: LayoutProps) {
           <div className="flex items-center gap-1 sm:gap-2 md:gap-4 flex-shrink-0">
             {user ? (
               <>
-                <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")} className="hidden sm:inline-flex text-white/70 hover:bg-white/10 hover:text-white">
-                  <Home className="mr-1 h-4 w-4" />
-                  Início
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => navigate("/relatorios")} className="hidden sm:inline-flex text-white/70 hover:bg-white/10 hover:text-white">
-                  <BarChart3 className="mr-1 h-4 w-4" />
-                  Relatórios
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => navigate("/circuitos")} className="hidden sm:inline-flex text-white/70 hover:bg-white/10 hover:text-white">
-                  <Navigation className="mr-1 h-4 w-4" />
-                  Circuitos
-                </Button>
+
                 <Link to="/perfil" className="flex items-center gap-2 group">
                   {profile?.photo_url ? (
                     <img src={profile.photo_url} alt={profile.name} className="h-9 w-9 rounded-full border-2 border-white/30 object-cover group-hover:border-white/60 transition" />
