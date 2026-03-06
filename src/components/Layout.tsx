@@ -2,7 +2,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/logo-small.webp";
-import { LogOut, LogIn, UserPlus, User, Settings, Menu, Home, BarChart3, Shield } from "lucide-react";
+import { LogOut, LogIn, UserPlus, User, Settings, Menu, Home, BarChart3, Shield, Navigation } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import { ReactNode, useState } from "react";
 import {
@@ -61,6 +61,10 @@ export default function Layout({ children }: LayoutProps) {
                   <BarChart3 className="mr-1 h-4 w-4" />
                   Relatórios
                 </Button>
+                <Button variant="ghost" size="sm" onClick={() => navigate("/circuitos")} className="hidden sm:inline-flex text-white/70 hover:bg-white/10 hover:text-white">
+                  <Navigation className="mr-1 h-4 w-4" />
+                  Circuitos
+                </Button>
                 <Link to="/perfil" className="flex items-center gap-2 group">
                   {profile?.photo_url ? (
                     <img src={profile.photo_url} alt={profile.name} className="h-9 w-9 rounded-full border-2 border-white/30 object-cover group-hover:border-white/60 transition" />
@@ -111,6 +115,10 @@ export default function Layout({ children }: LayoutProps) {
                       <Button variant="ghost" className="justify-start" onClick={() => handleMobileNav("/relatorios")}>
                         <BarChart3 className="mr-2 h-4 w-4" />
                         Relatórios
+                      </Button>
+                      <Button variant="ghost" className="justify-start" onClick={() => handleMobileNav("/circuitos")}>
+                        <Navigation className="mr-2 h-4 w-4" />
+                        Circuitos
                       </Button>
                       <Button variant="ghost" className="justify-start" onClick={() => handleMobileNav("/perfil")}>
                         <User className="mr-2 h-4 w-4" />
