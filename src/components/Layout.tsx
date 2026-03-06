@@ -67,10 +67,6 @@ export default function Layout({ children }: LayoutProps) {
                     {profile?.name || profile?.email}
                   </span>
                 </Link>
-                <Button variant="ghost" size="sm" onClick={() => navigate("/perfil")} className="hidden sm:inline-flex text-white/70 hover:bg-white/10 hover:text-white">
-                  <User className="mr-1 h-4 w-4" />
-                  Perfil
-                </Button>
                 <Button variant="ghost" size="sm" onClick={() => navigate("/configuracoes")} className="hidden sm:inline-flex text-white/70 hover:bg-white/10 hover:text-white">
                   <Settings className="mr-1 h-4 w-4" />
                   Planejamento

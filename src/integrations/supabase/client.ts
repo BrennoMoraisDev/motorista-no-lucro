@@ -5,10 +5,24 @@ import type { Database } from './types';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || import.meta.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
+// Debug logging
+if (typeof window !== 'undefined') {
+  console.log('🔧 Supabase Configuration Debug:');
+  console.log('URL:', SUPABASE_URL ? '✅ Configurada' : '❌ NÃO CONFIGURADA');
+  console.log('Key:', SUPABASE_PUBLISHABLE_KEY ? '✅ Configurada' : '❌ NÃO CONFIGURADA');
+  
+  if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+    console.error('❌ ERRO CRÍTICO: Variáveis de ambiente do Supabase não configuradas!');
+    console.error('Variáveis esperadas:');
+    console.error('- VITE_SUPABASE_URL ou NEXT_PUBLIC_SUPABASE_URL');
+    console.error('- VITE_SUPABASE_PUBLISHABLE_KEY ou NEXT_PUBLIC_SUPABASE_ANON_KEY');
+  }
+}
+
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+export const supabase = createClient<Database>(SUPABASE_URL || '', SUPABASE_PUBLISHABLE_KEY || '', {
   auth: {
     storage: localStorage,
     persistSession: true,
