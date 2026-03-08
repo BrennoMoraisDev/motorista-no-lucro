@@ -152,6 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     let loadingTimeout: NodeJS.Timeout | null = null;
     let isComponentMounted = true;
+    let hasInitialized = false; // Guard para evitar múltiplas inicializações
 
     // Timeout de segurança: se loading durar mais de 3 segundos, forçar false
     const startLoadingTimeout = () => {
@@ -192,21 +193,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
+        // Evitar atualizações desnecessárias se a sessão não mudou
         if (isComponentMounted) {
-          setSession(session);
-          setUser(session?.user ?? null);
-          console.log("user:", session?.user?.id || "null");
+          const userChanged = session?.user?.id !== user?.id;
+          
+          if (userChanged || event === "SIGNED_IN" || event === "SIGNED_OUT") {
+            console.log("🔄 Sessão alterada, atualizando estado");
+            setSession(session);
+            setUser(session?.user ?? null);
+            console.log("user:", session?.user?.id || "null");
 
-          if (session?.user) {
-            console.log("👤 Usuário autenticado:", session.user.email);
-            await fetchProfile(
-              session.user.id,
-              session.user.email || "",
-              session.user.user_metadata?.name || ""
-            );
-          } else {
-            console.log("👤 Nenhum usuário autenticado");
-            setProfile(null);
+            if (session?.user) {
+              console.log("👤 Usuário autenticado:", session.user.email);
+              await fetchProfile(
+                session.user.id,
+                session.user.email || "",
+                session.user.user_metadata?.name || ""
+              );
+            } else {
+              console.log("👤 Nenhum usuário autenticado");
+              setProfile(null);
+            }
           }
 
           setLoading(false);
@@ -215,52 +222,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
-    // Buscar sessão inicial
-    (async () => {
-      try {
-        console.log("📋 Buscando sessão inicial...");
-        const { data: { session }, error } = await supabase.auth.getSession();
+    // Buscar sessão inicial (apenas uma vez)
+    if (!hasInitialized) {
+      hasInitialized = true;
+      
+      (async () => {
+        try {
+          console.log("📋 Buscando sessão inicial...");
+          const { data: { session }, error } = await supabase.auth.getSession();
 
-        if (error) {
-          console.error("❌ Erro ao buscar sessão:", error);
+          if (error) {
+            console.error("❌ Erro ao buscar sessão:", error);
+            if (isComponentMounted) {
+              setLoading(false);
+              clearLoadingTimeout();
+            }
+            return;
+          }
+
+          console.log("session:", session?.user?.email || "null");
+
+          if (isComponentMounted) {
+            setSession(session);
+            setUser(session?.user ?? null);
+            console.log("user:", session?.user?.id || "null");
+
+            if (session?.user) {
+              console.log("👤 Carregando perfil da sessão inicial");
+              const prof = await fetchProfile(
+                session.user.id,
+                session.user.email || "",
+                session.user.user_metadata?.name || ""
+              );
+              console.log("profile:", prof || "null");
+            } else {
+              console.log("👤 Sem sessão ativa");
+              setProfile(null);
+            }
+
+            setLoading(false);
+            clearLoadingTimeout();
+          }
+        } catch (err) {
+          console.error("❌ Erro ao buscar sessão inicial:", err);
           if (isComponentMounted) {
             setLoading(false);
             clearLoadingTimeout();
           }
-          return;
         }
-
-        console.log("session:", session?.user?.email || "null");
-
-        if (isComponentMounted) {
-          setSession(session);
-          setUser(session?.user ?? null);
-          console.log("user:", session?.user?.id || "null");
-
-          if (session?.user) {
-            console.log("👤 Carregando perfil da sessão inicial");
-            const prof = await fetchProfile(
-              session.user.id,
-              session.user.email || "",
-              session.user.user_metadata?.name || ""
-            );
-            console.log("profile:", prof || "null");
-          } else {
-            console.log("👤 Sem sessão ativa");
-            setProfile(null);
-          }
-
-          setLoading(false);
-          clearLoadingTimeout();
-        }
-      } catch (err) {
-        console.error("❌ Erro ao buscar sessão inicial:", err);
-        if (isComponentMounted) {
-          setLoading(false);
-          clearLoadingTimeout();
-        }
-      }
-    })();
+      })();
+    }
 
     // Cleanup
     return () => {
@@ -268,7 +279,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearLoadingTimeout();
       subscription.unsubscribe();
     };
-  }, []);
+  }, [user?.id]); // Adicionar user?.id como dependência para evitar loops
 
   const signUp = async (name: string, email: string, password: string) => {
     try {
