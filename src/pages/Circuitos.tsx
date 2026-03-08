@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Layout } from "@/components/Layout";
+import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, MapPin, Clock, Navigation, CheckCircle2, AlertTriangle } from "lucide-react";
