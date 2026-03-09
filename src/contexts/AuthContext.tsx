@@ -1,20 +1,21 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
 interface Profile {
   id: string;
+  user_id: string;
   name: string;
   email: string;
   photo_url: string | null;
   plano: string;
-  premium_expira_em: string | null;
+  status_assinatura: string | null;
+  data_expiracao: string | null;
   created_at: string;
   updated_at: string;
 }
 
 const ADMIN_EMAIL = "brennomoraisdev@gmail.com";
-const LOADING_TIMEOUT = 3000; // 3 segundos de timeout
 
 interface AuthContextType {
   user: User | null;
@@ -40,98 +41,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isRecovering, setIsRecovering] = useState(false);
 
-  // Função para criar perfil automaticamente se não existir
-  const ensureProfileExists = async (userId: string, email: string, name: string = "") => {
+  const fetchProfile = useCallback(async (userId: string, email: string = "", name: string = "") => {
     try {
-      console.log(`🔍 Verificando se perfil existe para user_id: ${userId}`);
-      
-      const { data: existingProfile, error: fetchError } = await supabase
+      console.log(`📥 Buscando perfil para user_id: ${userId}`);
+      const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("user_id", userId)
         .single();
 
-      if (existingProfile) {
-        console.log("✅ Perfil já existe:", existingProfile);
-        return existingProfile;
+      if (data) {
+        console.log("✅ Perfil encontrado:", data);
+        setProfile(data as unknown as Profile);
+        return data;
       }
 
-      // Se não existe, criar automaticamente
-      if (fetchError && fetchError.code === "PGRST116") {
-        console.log("📝 Perfil não encontrado. Criando automaticamente...");
-        
+      if (error && error.code === "PGRST116") {
+        console.log("📝 Perfil não encontrado. Criando...");
         const isAdmin = email === ADMIN_EMAIL;
         const newProfile = {
           user_id: userId,
           name: name || email.split("@")[0],
-          email: email,
+          email,
           plano: isAdmin ? "premium" : "free",
-          premium_expira_em: isAdmin 
-            ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
-            : null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
         };
-
-        const { data: createdProfile, error: createError } = await supabase
+        const { data: created, error: createErr } = await supabase
           .from("profiles")
           .insert([newProfile])
           .select()
           .single();
 
-        if (createError) {
-          console.error("❌ Erro ao criar perfil:", createError);
-          return null;
+        if (created) {
+          setProfile(created as unknown as Profile);
+          return created;
         }
-
-        console.log("✅ Perfil criado com sucesso:", createdProfile);
-        return createdProfile;
-      }
-
-      if (fetchError) {
-        console.error("❌ Erro ao buscar perfil:", fetchError);
-        return null;
-      }
-
-      return null;
-    } catch (err) {
-      console.error("❌ Erro em ensureProfileExists:", err);
-      return null;
-    }
-  };
-
-  // Função para buscar e atualizar perfil
-  const fetchProfile = async (userId: string, email: string = "", name: string = "") => {
-    try {
-      console.log(`📥 Buscando perfil para user_id: ${userId}`);
-      
-      const { data: profile, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("user_id", userId)
-        .single();
-
-      if (error && error.code !== "PGRST116") {
+        if (createErr) console.error("❌ Erro ao criar perfil:", createErr);
+      } else if (error) {
         console.error("❌ Erro ao buscar perfil:", error);
-        // Continuar execução mesmo com erro
-        return null;
       }
 
-      if (profile) {
-        console.log("✅ Perfil encontrado:", profile);
-        setProfile(profile as unknown as Profile);
-        return profile;
-      }
-
-      // Se não encontrou, tentar criar automaticamente
-      console.log("⚠️ Perfil não encontrado. Tentando criar...");
-      const createdProfile = await ensureProfileExists(userId, email, name);
-      if (createdProfile) {
-        setProfile(createdProfile as unknown as Profile);
-        return createdProfile;
-      }
-
-      console.warn("⚠️ Não foi possível criar perfil");
       setProfile(null);
       return null;
     } catch (err) {
@@ -139,220 +87,123 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfile(null);
       return null;
     }
-  };
+  }, []);
 
-  const refreshProfile = async () => {
+  const refreshProfile = useCallback(async () => {
     if (user) {
       await fetchProfile(user.id, user.email || "", user.user_metadata?.name || "");
     }
-  };
+  }, [user, fetchProfile]);
 
   useEffect(() => {
     console.log("🔄 AuthProvider inicializando...");
-    
-    let loadingTimeout: NodeJS.Timeout | null = null;
-    let isComponentMounted = true;
-    let hasInitialized = false; // Guard para evitar múltiplas inicializações
+    let mounted = true;
 
-    // Timeout de segurança: se loading durar mais de 3 segundos, forçar false
-    const startLoadingTimeout = () => {
-      loadingTimeout = setTimeout(() => {
-        if (isComponentMounted) {
-          console.warn("⚠️ Timeout de loading atingido. Forçando setLoading(false)");
-          setLoading(false);
-        }
-      }, LOADING_TIMEOUT);
-    };
-
-    const clearLoadingTimeout = () => {
-      if (loadingTimeout) {
-        clearTimeout(loadingTimeout);
-        loadingTimeout = null;
-      }
-    };
-
-    // Iniciar timeout
-    startLoadingTimeout();
-
-    // Listener para mudanças de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (event, currentSession) => {
         console.log("🔐 Auth Event:", event);
-        console.log("session:", session?.user?.email || "null");
+
+        if (!mounted) return;
 
         if (event === "PASSWORD_RECOVERY") {
-          console.log("🔐 Modo de recuperação de senha detectado");
-          if (isComponentMounted) {
-            setIsRecovering(true);
-            setSession(null);
-            setUser(null);
-            setProfile(null);
-            setLoading(false);
-            clearLoadingTimeout();
-          }
+          setIsRecovering(true);
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+          setLoading(false);
           return;
         }
 
-        // Evitar atualizações desnecessárias se a sessão não mudou
-        if (isComponentMounted) {
-          const userChanged = session?.user?.id !== user?.id;
-          
-          if (userChanged || event === "SIGNED_IN" || event === "SIGNED_OUT") {
-            console.log("🔄 Sessão alterada, atualizando estado");
-            setSession(session);
-            setUser(session?.user ?? null);
-            console.log("user:", session?.user?.id || "null");
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
 
-            if (session?.user) {
-              console.log("👤 Usuário autenticado:", session.user.email);
-              await fetchProfile(
-                session.user.id,
-                session.user.email || "",
-                session.user.user_metadata?.name || ""
-              );
-            } else {
-              console.log("👤 Nenhum usuário autenticado");
-              setProfile(null);
-            }
-          }
-
+        if (currentSession?.user) {
+          // Use setTimeout to avoid potential deadlock with Supabase auth
+          setTimeout(async () => {
+            if (!mounted) return;
+            await fetchProfile(
+              currentSession.user.id,
+              currentSession.user.email || "",
+              currentSession.user.user_metadata?.name || ""
+            );
+            if (mounted) setLoading(false);
+          }, 0);
+        } else {
+          setProfile(null);
           setLoading(false);
-          clearLoadingTimeout();
         }
       }
     );
 
-    // Buscar sessão inicial (apenas uma vez)
-    if (!hasInitialized) {
-      hasInitialized = true;
-      
-      (async () => {
-        try {
-          console.log("📋 Buscando sessão inicial...");
-          const { data: { session }, error } = await supabase.auth.getSession();
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+      if (!mounted) return;
+      console.log("📋 Sessão inicial:", initialSession?.user?.email || "null");
+      // The onAuthStateChange INITIAL_SESSION event will handle setting state
+    });
 
-          if (error) {
-            console.error("❌ Erro ao buscar sessão:", error);
-            if (isComponentMounted) {
-              setLoading(false);
-              clearLoadingTimeout();
-            }
-            return;
-          }
+    // Safety timeout
+    const timeout = setTimeout(() => {
+      if (mounted && loading) {
+        console.warn("⚠️ Loading timeout - forçando false");
+        setLoading(false);
+      }
+    }, 5000);
 
-          console.log("session:", session?.user?.email || "null");
-
-          if (isComponentMounted) {
-            setSession(session);
-            setUser(session?.user ?? null);
-            console.log("user:", session?.user?.id || "null");
-
-            if (session?.user) {
-              console.log("👤 Carregando perfil da sessão inicial");
-              const prof = await fetchProfile(
-                session.user.id,
-                session.user.email || "",
-                session.user.user_metadata?.name || ""
-              );
-              console.log("profile:", prof || "null");
-            } else {
-              console.log("👤 Sem sessão ativa");
-              setProfile(null);
-            }
-
-            setLoading(false);
-            clearLoadingTimeout();
-          }
-        } catch (err) {
-          console.error("❌ Erro ao buscar sessão inicial:", err);
-          if (isComponentMounted) {
-            setLoading(false);
-            clearLoadingTimeout();
-          }
-        }
-      })();
-    }
-
-    // Cleanup
     return () => {
-      isComponentMounted = false;
-      clearLoadingTimeout();
+      mounted = false;
+      clearTimeout(timeout);
       subscription.unsubscribe();
     };
-  }, [user?.id]); // Adicionar user?.id como dependência para evitar loops
+  }, []); // Empty deps - only run once
 
   const signUp = async (name: string, email: string, password: string) => {
-    try {
-      console.log("📝 Iniciando signup para:", email);
-
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { name },
-          emailRedirectTo: `${window.location.origin}/dashboard`
-        },
-      });
-
-      if (error) {
-        console.error("❌ Erro no signup:", error);
-        throw error;
-      }
-
-      if (data.user) {
-        console.log("✅ Usuário criado em auth.users:", data.user.id);
-
-        // Aguardar um pouco para permitir que o trigger do Supabase execute
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        // Garantir que o perfil existe
-        await ensureProfileExists(data.user.id, email, name);
-      }
-    } catch (err) {
-      console.error("❌ Erro geral no signup:", err);
-      throw err;
-    }
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { name },
+        emailRedirectTo: `${window.location.origin}/dashboard`
+      },
+    });
+    if (error) throw error;
   };
 
   const signIn = async (email: string, password: string) => {
-    try {
-      console.log("🔐 Iniciando login para:", email);
-
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-
-      if (error) {
-        console.error("❌ Erro no login:", error);
-        throw error;
-      }
-
-      console.log("✅ Login realizado com sucesso");
-    } catch (err) {
-      console.error("❌ Erro geral no login:", err);
-      throw err;
+    console.log("🔐 Iniciando login para:", email);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      console.error("❌ Erro no login:", error);
+      throw error;
     }
+    console.log("✅ Login realizado com sucesso");
   };
 
   const signOut = async () => {
-    console.log("🚪 Realizando logout...");
     await supabase.auth.signOut();
     setProfile(null);
     setSession(null);
     setUser(null);
     setIsRecovering(false);
-    console.log("✅ Logout realizado");
   };
 
   const isAdmin = profile?.email === ADMIN_EMAIL;
 
+  // Access logic: admin always has access, premium with valid expiration has access,
+  // users with no expiration set and plano=premium have access (manually activated)
   const hasAccess = (() => {
     if (!profile) return false;
     if (isAdmin) return true;
-    if (profile.plano === "free") return true;
     
-    if (profile.plano === "premium" && profile.premium_expira_em) {
-      const expDate = new Date(profile.premium_expira_em);
-      const now = new Date();
-      if (expDate > now) return true;
+    // If premium with expiration date, check if still valid
+    if (profile.plano === "premium") {
+      if (!profile.data_expiracao) return true; // No expiration = unlimited
+      return new Date(profile.data_expiracao) > new Date();
+    }
+    
+    // Trial users with valid expiration
+    if (profile.status_assinatura === "trial" && profile.data_expiracao) {
+      return new Date(profile.data_expiracao) > new Date();
     }
     
     return false;
@@ -360,19 +211,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isReadOnly = (() => {
     if (!profile) return false;
-    if (isAdmin) return false;
-    if (profile.plano === "premium" && profile.premium_expira_em) {
-      const expDate = new Date(profile.premium_expira_em);
-      const now = new Date();
-      if (expDate > now) return false;
+    if (isAdmin) return true; // admin has full access, not read-only
+    if (hasAccess) return false;
+    // Expired users get read-only
+    if (profile.data_expiracao && new Date(profile.data_expiracao) <= new Date()) {
+      return true;
     }
-    return true;
+    return false;
   })();
 
   return (
     <AuthContext.Provider value={{
-      user, profile, session, loading, hasAccess, isReadOnly, isAdmin, isRecovering,
-      signUp, signIn, signOut, refreshProfile
+      user, profile, session, loading, hasAccess, isReadOnly: isAdmin ? false : isReadOnly, 
+      isAdmin, isRecovering, signUp, signIn, signOut, refreshProfile
     }}>
       {children}
     </AuthContext.Provider>

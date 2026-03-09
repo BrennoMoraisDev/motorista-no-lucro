@@ -63,14 +63,16 @@ export default function Configuracoes() {
         setIncluirManutencao(v.incluir_manutencao);
         setIncluirSeguro(v.incluir_seguro);
         setIncluirFinanciamento(v.incluir_financiamento);
-        if (v.ultimo_abastecimento_km && v.ultimo_abastecimento_litros) {
+        // These fields may not exist yet in the DB - use safely
+        const vAny = v as any;
+        if (vAny.ultimo_abastecimento_km && vAny.ultimo_abastecimento_litros) {
           setUltimoAbastecimento({
-            km: v.ultimo_abastecimento_km,
-            litros: v.ultimo_abastecimento_litros,
+            km: vAny.ultimo_abastecimento_km,
+            litros: vAny.ultimo_abastecimento_litros,
           });
         }
-        if (v.consumo_medio) {
-          setConsumoMedio(v.consumo_medio);
+        if (vAny.consumo_medio) {
+          setConsumoMedio(vAny.consumo_medio);
         }
       }
       setLoading(false);
@@ -176,7 +178,7 @@ export default function Configuracoes() {
         </div>
 
         <Tabs defaultValue="metas" className="w-full">
-          <TabsList className="mb-6 w-full grid grid-cols-2">
+          <TabsList className="mb-6 w-full grid grid-cols-3">
             <TabsTrigger value="metas" className="gap-2"><Target className="h-4 w-4" />Metas</TabsTrigger>
             <TabsTrigger value="veiculo" className="gap-2"><Car className="h-4 w-4" />Veículo</TabsTrigger>
             <TabsTrigger value="combustivel" className="gap-2">⛽ Combustível</TabsTrigger>
