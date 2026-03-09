@@ -183,7 +183,6 @@ export default function Configuracoes() {
             <TabsTrigger value="veiculo" className="gap-2"><Car className="h-4 w-4" />Veículo</TabsTrigger>
             <TabsTrigger value="combustivel" className="gap-2">⛽ Combustível</TabsTrigger>
           </TabsList>
-          </TabsList>
 
           {/* METAS TAB */}
           <TabsContent value="metas">
