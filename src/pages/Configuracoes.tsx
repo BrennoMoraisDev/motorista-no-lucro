@@ -63,14 +63,16 @@ export default function Configuracoes() {
         setIncluirManutencao(v.incluir_manutencao);
         setIncluirSeguro(v.incluir_seguro);
         setIncluirFinanciamento(v.incluir_financiamento);
-        if (v.ultimo_abastecimento_km && v.ultimo_abastecimento_litros) {
+        // These fields may not exist yet in the DB - use safely
+        const vAny = v as any;
+        if (vAny.ultimo_abastecimento_km && vAny.ultimo_abastecimento_litros) {
           setUltimoAbastecimento({
-            km: v.ultimo_abastecimento_km,
-            litros: v.ultimo_abastecimento_litros,
+            km: vAny.ultimo_abastecimento_km,
+            litros: vAny.ultimo_abastecimento_litros,
           });
         }
-        if (v.consumo_medio) {
-          setConsumoMedio(v.consumo_medio);
+        if (vAny.consumo_medio) {
+          setConsumoMedio(vAny.consumo_medio);
         }
       }
       setLoading(false);
