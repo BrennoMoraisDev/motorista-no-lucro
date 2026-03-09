@@ -178,12 +178,11 @@ export default function Configuracoes() {
         </div>
 
         <Tabs defaultValue="metas" className="w-full">
-          <TabsList className="mb-6 w-full grid grid-cols-2">
+          <TabsList className="mb-6 w-full grid grid-cols-3">
             <TabsTrigger value="metas" className="gap-2"><Target className="h-4 w-4" />Metas</TabsTrigger>
             <TabsTrigger value="veiculo" className="gap-2"><Car className="h-4 w-4" />Veículo</TabsTrigger>
-            </TabsList>
-          <TabsList className="mb-2 w-full grid grid-cols-1">
-             <TabsTrigger value="combustivel" className="gap-2">⛽ Combustível</TabsTrigger>
+            <TabsTrigger value="combustivel" className="gap-2">⛽ Combustível</TabsTrigger>
+          </TabsList>
           </TabsList>
 
           {/* METAS TAB */}
