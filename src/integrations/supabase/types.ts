@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      circuit_points: {
+        Row: {
+          circuito: string
+          created_at: string
+          dias_semana: Json
+          endereco: string
+          hora_fim: string
+          hora_inicio: string
+          horario_pico: string
+          id: string
+          latitude: number
+          longitude: number
+          motivo: string
+          nivel_demanda: string
+          nome_ponto: string
+        }
+        Insert: {
+          circuito: string
+          created_at?: string
+          dias_semana?: Json
+          endereco?: string
+          hora_fim?: string
+          hora_inicio?: string
+          horario_pico?: string
+          id?: string
+          latitude: number
+          longitude: number
+          motivo?: string
+          nivel_demanda?: string
+          nome_ponto: string
+        }
+        Update: {
+          circuito?: string
+          created_at?: string
+          dias_semana?: Json
+          endereco?: string
+          hora_fim?: string
+          hora_inicio?: string
+          horario_pico?: string
+          id?: string
+          latitude?: number
+          longitude?: number
+          motivo?: string
+          nivel_demanda?: string
+          nome_ponto?: string
+        }
+        Relationships: []
+      }
       daily_records: {
         Row: {
           created_at: string
