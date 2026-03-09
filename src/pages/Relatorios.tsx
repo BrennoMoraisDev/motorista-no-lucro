@@ -295,8 +295,8 @@ export default function Relatorios() {
   }, [records]);
 
   const exportPDF = () => {
-    if (!records.length || !profile) return;
-    generatePDFReport(records as any, profile.name || "Motorista", `${period} - ${refDate}`);
+    if (!records.length) return;
+    generatePDFReport(records as any, "Motorista", `${period} - ${refDate}`);
   };
 
   const exportCSV = () => {
