@@ -337,6 +337,57 @@ export type Database = {
         }
         Relationships: []
       }
+      circuit_points: {
+        Row: {
+          id: string
+          circuito: string
+          nome_ponto: string
+          endereco: string | null
+          latitude: number
+          longitude: number
+          motivo: string | null
+          horario_pico: string | null
+          nivel_demanda: string | null
+          hora_inicio: string | null
+          hora_fim: string | null
+          dias_semana: string[] | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          circuito: string
+          nome_ponto: string
+          endereco?: string | null
+          latitude: number
+          longitude: number
+          motivo?: string | null
+          horario_pico?: string | null
+          nivel_demanda?: string | null
+          hora_inicio?: string | null
+          hora_fim?: string | null
+          dias_semana?: string[] | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          circuito?: string
+          nome_ponto?: string
+          endereco?: string | null
+          latitude?: number
+          longitude?: number
+          motivo?: string | null
+          horario_pico?: string | null
+          nivel_demanda?: string | null
+          hora_inicio?: string | null
+          hora_fim?: string | null
+          dias_semana?: string[] | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
