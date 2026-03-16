@@ -1,10 +1,10 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, MapPin, Clock, CheckCircle2, AlertTriangle } from "lucide-react";
+import { AlertCircle, MapPin, Clock, Navigation, CheckCircle2, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   CircuitPoint,
@@ -29,38 +29,25 @@ export default function Circuitos() {
   const watchIdRef = useRef<number | null>(null);
   const { calculateRoutesForMultiplePoints, loading: routeLoading } = useRouteCalculation();
 
+  // Obter lista de circuitos disponíveis
   const circuits = Array.from(new Set(allPoints.map(p => p.circuito))).sort();
 
-  // Load points from DB
+  // Carregar pontos do banco de dados
   useEffect(() => {
     const loadPoints = async () => {
       try {
         setLoading(true);
-        const { data, error: fetchErr } = await supabase
+        const { data, error } = await supabase
           .from("circuit_points")
           .select("*");
 
-        if (fetchErr) throw fetchErr;
+        if (error) throw error;
+        setAllPoints(data || []);
 
-        // Map DB rows to CircuitPoint interface
-        const points: CircuitPoint[] = (data || []).map((row: any) => ({
-          id: row.id,
-          circuito: row.circuito,
-          nome_ponto: row.nome_ponto,
-          endereco: row.endereco,
-          latitude: row.latitude,
-          longitude: row.longitude,
-          motivo: row.motivo,
-          horario_pico: row.horario_pico,
-          nivel_demanda: row.nivel_demanda,
-          hora_inicio: row.hora_inicio,
-          hora_fim: row.hora_fim,
-          dias_semana: Array.isArray(row.dias_semana) ? row.dias_semana : JSON.parse(row.dias_semana || '[]'),
-        }));
-
-        setAllPoints(points);
-        if (points.length > 0) {
-          setSelectedCircuit(points[0].circuito);
+        // Selecionar primeiro circuito por padrão
+        if (data && data.length > 0) {
+          const firstCircuit = data[0].circuito;
+          setSelectedCircuit(firstCircuit);
         }
       } catch (err) {
         console.error("❌ Erro ao carregar pontos:", err);
@@ -73,26 +60,34 @@ export default function Circuitos() {
     loadPoints();
   }, []);
 
-  // Get current location
+  // Obter localização atual do motorista
   useEffect(() => {
     if (!navigator.geolocation) {
       setError("Geolocalização não disponível");
       return;
     }
 
+    // Obter localização inicial
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setCurrentLocation({ lat: position.coords.latitude, lon: position.coords.longitude });
+        setCurrentLocation({
+          lat: position.coords.latitude,
+          lon: position.coords.longitude,
+        });
       },
       (err) => {
         console.error("❌ Erro ao obter localização:", err);
-        setError("Erro ao obter localização. Permita o acesso à localização.");
+        setError("Erro ao obter localização");
       }
     );
 
+    // Monitorar localização em tempo real
     watchIdRef.current = navigator.geolocation.watchPosition(
       (position) => {
-        setCurrentLocation({ lat: position.coords.latitude, lon: position.coords.longitude });
+        setCurrentLocation({
+          lat: position.coords.latitude,
+          lon: position.coords.longitude,
+        });
       },
       (err) => console.error("❌ Erro ao monitorar localização:", err)
     );
@@ -104,56 +99,68 @@ export default function Circuitos() {
     };
   }, []);
 
-  // Filter and sort points when circuit or location changes
-  const updatePoints = useCallback(async () => {
-    if (!selectedCircuit || !currentLocation) return;
+  // Filtrar e ordenar pontos quando circuito ou localização mudar
+  useEffect(() => {
+    const updatePoints = async () => {
+      if (!selectedCircuit || !currentLocation) return;
 
-    try {
-      const circuitPoints = allPoints.filter(p => p.circuito === selectedCircuit);
-      const activeCircuitPoints = filterActivePoints(circuitPoints);
+      try {
+        // Filtrar pontos do circuito selecionado
+        const circuitPoints = allPoints.filter(p => p.circuito === selectedCircuit);
 
-      if (activeCircuitPoints.length === 0) {
-        setActivePoints([]);
-        return;
+        // Filtrar apenas pontos ativos no horário/dia atual
+        const activeCircuitPoints = filterActivePoints(circuitPoints);
+
+        if (activeCircuitPoints.length === 0) {
+          setActivePoints([]);
+          return;
+        }
+
+        // Calcular rotas reais para cada ponto
+        const pointsWithRoutes = await calculateRoutesForMultiplePoints(
+          currentLocation.lat,
+          currentLocation.lon,
+          activeCircuitPoints
+        );
+
+        setActivePoints(pointsWithRoutes);
+
+        // Se não houver ponto selecionado, selecionar o mais próximo
+        if (!selectedPoint && pointsWithRoutes.length > 0) {
+          setSelectedPoint(pointsWithRoutes[0]);
+        }
+      } catch (err) {
+        console.error("❌ Erro ao atualizar pontos:", err);
       }
+    };
 
-      const pointsWithRoutes = await calculateRoutesForMultiplePoints(
-        currentLocation.lat,
-        currentLocation.lon,
-        activeCircuitPoints
-      );
-
-      setActivePoints(pointsWithRoutes);
-
-      if (!selectedPoint && pointsWithRoutes.length > 0) {
-        setSelectedPoint(pointsWithRoutes[0]);
-      }
-    } catch (err) {
-      console.error("❌ Erro ao atualizar pontos:", err);
-    }
+    updatePoints();
   }, [selectedCircuit, currentLocation, allPoints, calculateRoutesForMultiplePoints, selectedPoint]);
 
-  useEffect(() => {
-    updatePoints();
-  }, [selectedCircuit, currentLocation?.lat, currentLocation?.lon, allPoints]);
-
-  // Check arrival
+  // Verificar se chegou ao ponto selecionado
   useEffect(() => {
     if (!selectedPoint || !currentLocation) return;
+
     const arrived = hasArrivedAtPoint(
-      currentLocation.lat, currentLocation.lon,
-      selectedPoint.latitude, selectedPoint.longitude
+      currentLocation.lat,
+      currentLocation.lon,
+      selectedPoint.latitude,
+      selectedPoint.longitude
     );
+
     setHasArrived(arrived);
   }, [selectedPoint, currentLocation]);
 
+  // Navegar para o Waze (sem abrir nova aba)
   const handleNavigateToWaze = (point: PointWithDistance) => {
     const wazeUrl = `waze://?ll=${point.latitude},${point.longitude}&navigate=yes`;
     window.location.href = wazeUrl;
   };
 
+  // Ir para próximo ponto
   const handleNextPoint = () => {
     if (!selectedPoint || activePoints.length === 0) return;
+
     const currentIndex = activePoints.findIndex(p => p.id === selectedPoint.id);
     const nextIndex = (currentIndex + 1) % activePoints.length;
     setSelectedPoint(activePoints[nextIndex]);
@@ -163,8 +170,9 @@ export default function Circuitos() {
   if (loading) {
     return (
       <Layout>
-        <div className="flex min-h-screen items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <div className="flex min-h-[70vh] items-center justify-center flex-col gap-4">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <p className="text-muted-foreground animate-pulse">Carregando circuitos inteligentes...</p>
         </div>
       </Layout>
     );
@@ -172,21 +180,22 @@ export default function Circuitos() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-background p-4 pb-24">
+      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white p-4 pb-24 dark:from-slate-900 dark:to-slate-950">
         <div className="mx-auto max-w-2xl">
+          {/* Header */}
           <div className="mb-6">
-            <h1 className="text-3xl font-bold text-foreground">🧭 Circuitos Inteligentes</h1>
-            <p className="text-muted-foreground">Sistema inteligente de pontos de corrida</p>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">🧭 Circuitos Inteligentes</h1>
+            <p className="text-gray-600 dark:text-slate-400">Sistema inteligente de pontos de corrida</p>
           </div>
 
-          {/* Circuit selector */}
+          {/* Seleção de Circuito */}
           {circuits.length > 0 && (
-            <Card className="mb-6 border-2 border-primary/20">
+            <Card className="mb-6 border-2 border-blue-200 dark:border-blue-900/30">
               <CardHeader>
                 <CardTitle className="text-lg">Selecionar Circuito</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto">
+                <div className="grid grid-cols-2 gap-2">
                   {circuits.map(circuit => (
                     <Button
                       key={circuit}
@@ -196,7 +205,7 @@ export default function Circuitos() {
                         setHasArrived(false);
                       }}
                       variant={selectedCircuit === circuit ? "default" : "outline"}
-                      className="w-full text-sm"
+                      className="w-full"
                     >
                       {circuit}
                     </Button>
@@ -206,6 +215,7 @@ export default function Circuitos() {
             </Card>
           )}
 
+          {/* Erro */}
           {error && (
             <Alert variant="destructive" className="mb-6">
               <AlertCircle className="h-4 w-4" />
@@ -213,11 +223,12 @@ export default function Circuitos() {
             </Alert>
           )}
 
+          {/* Localização Atual */}
           {currentLocation && (
-            <Card className="mb-6 bg-muted/50 border-border">
+            <Card className="mb-6 bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-900/30">
               <CardContent className="pt-6">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <MapPin className="h-4 w-4 text-primary" />
+                <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300">
+                  <MapPin className="h-4 w-4 text-blue-600" />
                   <span>
                     Localização: {currentLocation.lat.toFixed(4)}, {currentLocation.lon.toFixed(4)}
                   </span>
@@ -226,131 +237,137 @@ export default function Circuitos() {
             </Card>
           )}
 
-          {/* Selected point */}
-          {selectedPoint && (
-            <Card className="mb-6 border-2 border-primary/30 shadow-lg">
+          {/* Ponto Selecionado */}
+          {selectedPoint ? (
+            <Card className="mb-6 border-2 border-green-300 shadow-lg dark:border-green-900/30">
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div>
                     <CardTitle className="text-2xl">{selectedPoint.nome_ponto}</CardTitle>
                     <CardDescription>{selectedPoint.endereco}</CardDescription>
                   </div>
-                  {hasArrived && <CheckCircle2 className="h-6 w-6 text-primary" />}
+                  {hasArrived && <CheckCircle2 className="h-6 w-6 text-green-600" />}
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Informações do Ponto */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="rounded-lg bg-muted p-3">
-                    <p className="text-xs text-muted-foreground">Tempo de Chegada</p>
-                    <p className="text-lg font-bold text-primary">{formatDuration(selectedPoint.duration_minutes)}</p>
+                  <div className="rounded-lg bg-gray-50 dark:bg-slate-900 p-3">
+                    <p className="text-xs text-gray-600 dark:text-slate-400">Tempo de Chegada</p>
+                    <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                      {formatDuration(selectedPoint.duration_minutes)}
+                    </p>
                   </div>
-                  <div className="rounded-lg bg-muted p-3">
-                    <p className="text-xs text-muted-foreground">Distância</p>
-                    <p className="text-lg font-bold text-primary">{formatDistance(selectedPoint.distance_meters)}</p>
+                  <div className="rounded-lg bg-gray-50 dark:bg-slate-900 p-3">
+                    <p className="text-xs text-gray-600 dark:text-slate-400">Distância</p>
+                    <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                      {formatDistance(selectedPoint.distance_meters)}
+                    </p>
                   </div>
                 </div>
 
+                {/* Motivo */}
                 {selectedPoint.motivo && (
-                  <div className="rounded-lg bg-accent/50 p-3 border border-accent">
-                    <p className="text-xs font-semibold text-accent-foreground">Motivo da Parada</p>
-                    <p className="text-sm text-accent-foreground">{selectedPoint.motivo}</p>
+                  <div className="rounded-lg bg-amber-50 dark:bg-amber-950/20 p-3 border border-amber-200 dark:border-amber-900/30">
+                    <p className="text-xs font-semibold text-amber-900 dark:text-amber-400">Motivo da Parada</p>
+                    <p className="text-sm text-amber-800 dark:text-amber-300">{selectedPoint.motivo}</p>
                   </div>
                 )}
 
+                {/* Horário de Pico */}
                 {selectedPoint.horario_pico && (
-                  <div className="flex items-center gap-2 rounded-lg bg-muted p-3 border border-border">
-                    <Clock className="h-4 w-4 text-primary" />
+                  <div className="flex items-center gap-2 rounded-lg bg-purple-50 dark:bg-purple-950/20 p-3 border border-purple-200 dark:border-purple-900/30">
+                    <Clock className="h-4 w-4 text-purple-600" />
                     <div>
-                      <p className="text-xs font-semibold text-foreground">Horário de Pico</p>
-                      <p className="text-sm text-muted-foreground">{selectedPoint.horario_pico}</p>
+                      <p className="text-xs font-semibold text-purple-900 dark:text-purple-400">Horário de Pico</p>
+                      <p className="text-sm text-purple-800 dark:text-purple-300">{selectedPoint.horario_pico}</p>
                     </div>
                   </div>
                 )}
 
+                {/* Nível de Demanda */}
                 <div className="flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-destructive" />
-                  <span className="text-sm font-semibold text-foreground">
+                  <AlertTriangle className="h-4 w-4 text-orange-600" />
+                  <span className="text-sm font-semibold text-orange-700 dark:text-orange-400">
                     Demanda: {selectedPoint.nivel_demanda}
                   </span>
                 </div>
 
+                {/* Botões de Ação */}
                 <div className="space-y-3 pt-4">
                   {hasArrived ? (
-                    <div className="rounded-lg bg-primary/10 p-3 border border-primary/30">
-                      <p className="text-center font-bold text-primary">✅ Ponto Alcançado!</p>
+                    <div className="rounded-lg bg-green-50 dark:bg-green-950/20 p-3 border border-green-300 dark:border-green-900/30">
+                      <p className="text-center font-bold text-green-700 dark:text-green-400">✅ Ponto Alcançado!</p>
                     </div>
                   ) : (
                     <Button
                       onClick={() => handleNavigateToWaze(selectedPoint)}
-                      className="w-full py-6 text-lg font-bold rounded-lg"
+                      className="w-full h-14 text-lg bg-[#33ccff] hover:bg-[#2bb5e0] text-white border-none"
                     >
-                      🧭 IR PARA O PONTO
+                      <Navigation className="mr-2 h-5 w-5" />
+                      Navegar com Waze
                     </Button>
                   )}
-
-                  {hasArrived && (
-                    <Button
-                      onClick={handleNextPoint}
-                      variant="secondary"
-                      className="w-full py-6 text-lg font-bold rounded-lg"
-                    >
-                      ⏭ PRÓXIMO PONTO
-                    </Button>
-                  )}
+                  
+                  <Button
+                    onClick={handleNextPoint}
+                    variant="outline"
+                    className="w-full h-12"
+                  >
+                    Próximo Ponto do Circuito
+                  </Button>
                 </div>
               </CardContent>
             </Card>
+          ) : (
+            <Card className="p-8 text-center border-dashed">
+              <div className="flex flex-col items-center gap-4">
+                <Navigation className="h-12 w-12 text-muted-foreground animate-pulse" />
+                <div>
+                  <h3 className="text-lg font-semibold">Nenhum ponto ativo</h3>
+                  <p className="text-muted-foreground">
+                    Não há pontos ativos para este circuito no momento ou sua localização ainda não foi obtida.
+                  </p>
+                </div>
+                <Button onClick={() => window.location.reload()} variant="outline">
+                  Tentar Novamente
+                </Button>
+              </div>
+            </Card>
           )}
 
-          {/* Next points list */}
+          {/* Lista de outros pontos do circuito */}
           {activePoints.length > 1 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Próximos Pontos</CardTitle>
-                <CardDescription>Ordenados por tempo de chegada</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {activePoints.map((point, index) => (
-                    <button
+            <div className="mt-8 space-y-4">
+              <h3 className="font-semibold text-lg flex items-center gap-2">
+                <MapPin className="h-5 w-5" /> Outros pontos próximos
+              </h3>
+              <div className="grid gap-3">
+                {activePoints
+                  .filter(p => p.id !== selectedPoint?.id)
+                  .map(point => (
+                    <Card
                       key={point.id}
-                      onClick={() => setSelectedPoint(point)}
-                      className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
-                        selectedPoint?.id === point.id
-                          ? "border-primary bg-primary/5"
-                          : "border-border bg-card hover:border-primary/30"
-                      }`}
+                      className="cursor-pointer hover:border-blue-400 transition-colors"
+                      onClick={() => {
+                        setSelectedPoint(point);
+                        setHasArrived(false);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
                     >
-                      <div className="flex items-center justify-between">
+                      <CardContent className="p-4 flex items-center justify-between">
                         <div>
-                          <p className="font-semibold text-foreground">{index + 1}. {point.nome_ponto}</p>
-                          <p className="text-sm text-muted-foreground">{point.motivo}</p>
+                          <p className="font-bold">{point.nome_ponto}</p>
+                          <p className="text-xs text-muted-foreground">{point.endereco}</p>
                         </div>
                         <div className="text-right">
-                          <p className="font-bold text-primary">{formatDuration(point.duration_minutes)}</p>
-                          <p className="text-xs text-muted-foreground">{formatDistance(point.distance_meters)}</p>
+                          <p className="text-sm font-bold text-blue-600">{formatDistance(point.distance_meters)}</p>
+                          <p className="text-[10px] text-muted-foreground">{formatDuration(point.duration_minutes)}</p>
                         </div>
-                      </div>
-                    </button>
+                      </CardContent>
+                    </Card>
                   ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {selectedCircuit && activePoints.length === 0 && !routeLoading && (
-            <Alert className="bg-muted border-border">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Nenhum ponto ativo neste horário/dia. Tente outro circuito.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {routeLoading && (
-            <div className="flex items-center justify-center gap-2 text-muted-foreground">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              <span>Calculando rotas...</span>
+              </div>
             </div>
           )}
         </div>

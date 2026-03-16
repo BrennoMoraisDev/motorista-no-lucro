@@ -33,7 +33,11 @@ export function isPointActive(point: CircuitPoint): boolean {
 
   // Verificar se está dentro do horário
   if (point.hora_inicio && point.hora_fim) {
-    if (currentTime < point.hora_inicio || currentTime > point.hora_fim) {
+    // Normalizar formatos de hora (HH:mm ou HH:mm:ss)
+    const start = point.hora_inicio.substring(0, 5);
+    const end = point.hora_fim.substring(0, 5);
+    
+    if (currentTime < start || currentTime > end) {
       return false;
     }
   }
