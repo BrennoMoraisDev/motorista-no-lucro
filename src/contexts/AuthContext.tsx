@@ -59,12 +59,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error && error.code === "PGRST116") {
         console.log("📝 Perfil não encontrado. Criando...");
         const isAdmin = email === ADMIN_EMAIL;
+        
+        // Calcular data de expiração (7 dias a partir de agora para novos usuários)
+        const expirationDate = new Date();
+        expirationDate.setDate(expirationDate.getDate() + 7);
+        
         const newProfile = {
           user_id: userId,
           name: name || email.split("@")[0],
           email,
           plano: isAdmin ? "premium" : "free",
+          status_assinatura: isAdmin ? "active" : "trial",
+          data_expiracao: expirationDate.toISOString(),
         };
+        
         const { data: created, error: createErr } = await supabase
           .from("profiles")
           .insert([newProfile])
@@ -101,8 +109,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
-        console.log("🔐 Auth Event:", event);
-
         if (!mounted) return;
 
         if (event === "PASSWORD_RECOVERY") {
@@ -166,33 +172,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         emailRedirectTo: `${window.location.origin}/dashboard`
       },
     });
+    
     if (error) throw error;
+
+    // Se o cadastro foi bem sucedido mas a sessão é nula (email não confirmado)
+    // tentamos obter a sessão atual, pois o Supabase pode ter logado o usuário
+    if (data.user && !data.session) {
+      console.log("📝 Cadastro realizado, verificando sessão...");
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (sessionData.session) {
+        console.log("✅ Sessão obtida após cadastro");
+        setSession(sessionData.session);
+        setUser(sessionData.session.user);
+      } else {
+        console.log("🔄 Tentando login automático...");
+        try {
+          await signIn(email, password);
+        } catch (e) {
+          console.warn("⚠️ Login automático falhou.");
+        }
+      }
+    }
   };
 
   const signIn = async (email: string, password: string) => {
     console.log("🔐 Iniciando login para:", email);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      // Ignorar erro de email não confirmado (permitir login mesmo sem confirmação)
-      if (error.message === "Email not confirmed") {
-        console.warn("⚠️ Email não confirmado, mas permitindo login...");
-        // Tentar fazer login novamente com a flag de bypass
-        const { error: retryError } = await supabase.auth.signInWithPassword({ 
-          email, 
-          password,
-          options: { captchaToken: undefined }
-        });
-        if (retryError && retryError.message !== "Email not confirmed") {
-          console.error("❌ Erro no login:", retryError);
-          throw retryError;
-        }
-        console.log("✅ Login realizado com sucesso (email não confirmado)");
-        return;
-      }
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    
+    // Se houver erro, mas for apenas de email não confirmado, vamos tentar prosseguir
+    if (error && error.message !== "Email not confirmed") {
       console.error("❌ Erro no login:", error);
       throw error;
     }
-    console.log("✅ Login realizado com sucesso");
+    
+    // Tentar obter a sessão de qualquer forma
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (sessionData.session) {
+      console.log("✅ Sessão obtida:", sessionData.session.user.email);
+      setSession(sessionData.session);
+      setUser(sessionData.session.user);
+      return;
+    }
+
+    if (error) {
+      console.error("❌ Erro no login (sem sessão):", error);
+      throw error;
+    }
+    
+    if (data.session) {
+      console.log("✅ Login realizado com sucesso", data.session.user.email);
+      setSession(data.session);
+      setUser(data.session.user);
+    } else {
+      throw new Error("Não foi possível iniciar a sessão. Verifique suas credenciais.");
+    }
   };
 
   const signOut = async () => {

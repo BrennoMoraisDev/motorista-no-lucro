@@ -21,7 +21,9 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
     return <Navigate to="/reset-password" replace />;
   }
 
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
 
   // Allow free routes regardless of subscription
   if (FREE_ROUTES.some((r) => location.pathname.startsWith(r))) {
